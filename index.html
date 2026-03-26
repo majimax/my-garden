@@ -715,10 +715,11 @@
             const可回=S.DC.filter(c=>c.type==='seedling'||c.type==='leaf');
             if(可回.length===0){toast('弃牌区无可回收');S.P[S.cur].hand.push({type:'tool',value:type});return;}
             const card=S.DC.pop();S.P[S.cur].hand.push(card);log('回收'+card.value,S.cur);toast('回收: '+EMOJI[card.value]+card.value);
+            closeModal();finishTurn();
         }
     }
 
-    function cutCard(zi,part){const z=S.Z[zi];if(part==='sd'){S.DC.push(z.seedling);z.seedling=null;log('剪掉幼苗',S.cur);}else if(part==='lf'){S.DC.push(z.leaf);z.leaf=null;log('剪掉叶子',S.cur);}closeModal();render();}
+    function cutCard(zi,part){const z=S.Z[zi];if(part==='sd'){S.DC.push(z.seedling);z.seedling=null;log('剪掉幼苗',S.cur);}else if(part==='lf'){S.DC.push(z.leaf);z.leaf=null;log('剪掉叶子',S.cur);}closeModal();finishTurn();}
 
     function viewSeed(zi){
         const zone=S.Z[zi],oldSeed=zone.seed,newSeed=S.seedPool.length>0?S.seedPool.pop():null;
