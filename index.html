@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的花园 - 桌游</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; background: linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 50%, #1a3a2a 100%); min-height: 100vh; color: #333; }
+        .screen { display: none; min-height: 100vh; padding: 20px; }
+        .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #start-screen h1 { font-size: 3em; color: #fff; text-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-bottom: 8px; }
+        #start-screen .subtitle { color: rgba(255,255,255,0.8); font-size: 1em; margin-bottom: 40px; }
+        .btn { padding: 14px 35px; font-size: 1em; border: none; border-radius: 25px; cursor: pointer; transition: all 0.3s; margin: 6px; }
+        .btn-primary { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; box-shadow: 0 4px 15px rgba(76,175,80,0.4); }
+        .btn-primary:hover { transform: translateY(-2px); }
+        .btn-secondary { background: rgba(255,255,255,0.15); color: white; border: 2px solid rgba(255,255,255,0.4); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.25); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+        #game-screen { padding: 8px; justify-content: flex-start; padding-top: 8px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 950px; margin-bottom: 8px; gap: 10px; }
+        .player-card { background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 12px; color: white; display: flex; align-items: center; gap: 10px; min-width: 150px; flex: 1; }
+        .player-card.active { background: rgba(76,175,80,0.5); box-shadow: 0 0 15px rgba(76,175,80,0.4); }
+        .player-icon { font-size: 1.3em; }
+        .player-info { display: flex; flex-direction: column; flex: 1; }
+        .player-name { font-weight: bold; font-size: 0.85em; }
+        .player-score { font-size: 0.75em; opacity: 0.9; }
+        .player-task { font-size: 0.7em; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 8px; }
+        .turn-info { text-align: center; color: white; flex: 1; }
+        .turn-number { font-size: 1.1em; font-weight: bold; color: #A5D6A7; }
+        .phase-hint { font-size: 0.75em; color: #C8E6C9; }
+        .task-bar { background: linear-gradient(135deg, #FF7043, #FF5722); color: white; padding: 10px 20px; border-radius: 12px; margin: 8px 0; width: 100%; max-width: 950px; display: flex; align-items: center; justify-content: center; gap: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
+        .task-bar .label { font-weight: bold; }
+        .task-bar .task-name { font-size: 1.1em; }
+        .task-bar .task-desc { opacity: 0.9; font-size: 0.85em; }
+        .action-hint { background: linear-gradient(135deg, #1B5E20, #2E7D32); color: white; padding: 10px 20px; border-radius: 20px; margin: 6px 0; font-size: 0.9em; text-align: center; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+        .action-bar { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 8px 0; }
+        .action-btn { padding: 10px 16px; border: none; border-radius: 18px; cursor: pointer; font-size: 0.85em; transition: all 0.3s; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .action-btn:hover:not(:disabled) { transform: translateY(-2px); }
+        .action-btn.selected { box-shadow: 0 0 0 3px white, 0 4px 12px rgba(0,0,0,0.3); transform: scale(1.05); }
+        .btn-draw { background: linear-gradient(135deg, #81D4FA, #4FC3F7); color: white; }
+        .btn-plant { background: linear-gradient(135deg, #81C784, #4CAF50); color: white; }
+        .btn-leaf { background: linear-gradient(135deg, #AED581, #8BC34A); color: white; }
+        .btn-tool { background: linear-gradient(135deg, #FFB74D, #FF9800); color: white; }
+        .btn-verify { background: linear-gradient(135deg, #64B5F6, #2196F3); color: white; }
+        .btn-end { background: linear-gradient(135deg, #EF9A9A, #F44336); color: white; }
+        .game-area { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; width: 100%; max-width: 950px; }
+        .zones-container { background: rgba(139,90,43,0.7); padding: 12px; border-radius: 12px; border: 3px solid #8B5A2B; }
+        .zones-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .zone { width: 95px; min-height: 115px; background: linear-gradient(180deg, #8B5A2B 0%, #6B4423 100%); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 5px; position: relative; border: 2px solid #5D3A1A; cursor: pointer; transition: all 0.2s; }
+        .zone:hover { border-color: #81C784; }
+        .zone.locked { cursor: not-allowed; opacity: 0.9; }
+        .zone.locked:hover { border-color: #5D3A1A; }
+        .zone.target { border-color: #FFD700; box-shadow: 0 0 15px rgba(255,215,0,0.6); animation: glow 1s infinite; }
+        @keyframes glow { 0%,100% { box-shadow: 0 0 15px rgba(255,215,0,0.6); } 50% { box-shadow: 0 0 25px rgba(255,215,0,0.9); } }
+        .zone.selected { border-color: #4CAF50; box-shadow: 0 0 15px rgba(76,175,80,0.6); }
+        .zone-num { position: absolute; top: 2px; left: 4px; font-size: 0.6em; color: rgba(255,255,255,0.4); }
+        .zone-owner { position: absolute; top: 2px; right: 4px; font-size: 0.6em; }
+        .seed-card-display { width: 100%; min-height: 75px; background: linear-gradient(135deg, #FFE4B5, #FFDAB9); border-radius: 6px; border: 2px solid #DEB887; padding: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.6em; text-align: center; margin-bottom: 3px; }
+        .seed-card-display.face-down { background: linear-gradient(135deg, #90C695, #7AB885); border-color: #6B8E6B; }
+        .seed-card-display .plant-name { font-weight: bold; font-size: 1.1em; color: #5D3A1A; margin-bottom: 2px; }
+        .seed-card-display .plant-type { color: #8B4513; }
+        .seed-card-display .plant-detail { color: #666; font-size: 0.9em; }
+        .zone-cards { display: flex; gap: 3px; justify-content: center; width: 100%; }
+        .mini-card { width: 28px; height: 35px; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.55em; text-align: center; border: 1px solid; }
+        .mini-seedling { background: linear-gradient(135deg, #98D8AA, #7BC88C); border-color: #4CAF50; color: #2E7D32; }
+        .mini-leaf { background: linear-gradient(135deg, #66BB6A, #4CAF50); border-color: #388E3C; color: #1B5E20; }
+        .zone-status { font-size: 0.65em; color: white; text-shadow: 0 1px 2px black; margin-top: 2px; }
+        .zone-status.ok { color: #81C784; font-weight: bold; }
+        .zone-status.fail { color: #EF5350; }
+        .zone-status.pending { color: #FFD54F; }
+        .side-panel { display: flex; flex-direction: column; gap: 8px; }
+        .panel-box { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; color: white; text-align: center; }
+        .panel-box h3 { font-size: 0.75em; color: #A5D6A7; margin-bottom: 6px; }
+        .deck { width: 50px; height: 68px; background: linear-gradient(135deg, #6B8E6B, #5A7D5A); border-radius: 6px; border: 2px solid #4A6E4A; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; margin: 0 auto; font-size: 0.7em; }
+        .deck:hover { transform: scale(1.05); }
+        .deck-icon { font-size: 1.2em; }
+        .deck-count { font-size: 1em; font-weight: bold; }
+        .discard-area { min-height: 68px; display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; align-items: center; }
+        .discard-empty { color: rgba(255,255,255,0.4); font-size: 0.7em; }
+        .hand-area { position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.7)); padding: 10px 12px 12px; backdrop-filter: blur(5px); }
+        .hand-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .hand-label { color: white; font-size: 0.8em; display: flex; align-items: center; gap: 8px; }
+        .hand-count { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 8px; font-size: 0.75em; }
+        .hand-cards { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+        .seed-card-hand { width: 75px; min-height: 100px; background: linear-gradient(135deg, #FFE4B5, #FFDAB9); border-radius: 8px; border: 2px solid #DEB887; padding: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 0.6em; text-align: center; }
+        .seed-card-hand:hover { transform: translateY(-6px); box-shadow: 0 6px 15px rgba(0,0,0,0.4); }
+        .seed-card-hand.selected { transform: translateY(-12px); box-shadow: 0 10px 20px rgba(76,175,80,0.5); border-color: #4CAF50; }
+        .seed-card-hand.disabled { opacity: 0.5; cursor: not-allowed; }
+        .seed-card-hand.disabled:hover { transform: none; }
+        .seed-card-hand .plant-name { font-weight: bold; font-size: 1em; color: #5D3A1A; margin-bottom: 2px; }
+        .seed-card-hand .plant-type { color: #8B4513; font-size: 0.85em; }
+        .seed-card-hand .plant-detail { color: #666; font-size: 0.8em; }
+        .card { width: 58px; height: 80px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 0.65em; text-align: center; padding: 4px; }
+        .card:hover { transform: translateY(-6px); box-shadow: 0 6px 15px rgba(0,0,0,0.4); }
+        .card.selected { transform: translateY(-12px); box-shadow: 0 10px 20px rgba(76,175,80,0.5); border: 2px solid #4CAF50; }
+        .card.disabled { opacity: 0.4; cursor: not-allowed; }
+        .card.disabled:hover { transform: none; }
+        .card.clickable { animation: cardGlow 1.5s infinite; }
+        @keyframes cardGlow { 0%,100% { box-shadow: 0 0 5px rgba(76,175,80,0.3); } 50% { box-shadow: 0 0 12px rgba(76,175,80,0.6); } }
+        .card-seedling { background: linear-gradient(135deg, #98D8AA, #7BC88C); border: 2px solid #4CAF50; }
+        .card-leaf { background: linear-gradient(135deg, #66BB6A, #4CAF50); border: 2px solid #388E3C; }
+        .card-tool { background: linear-gradient(135deg, #FFB74D, #FFA726); border: 2px solid #F57C00; }
+        .card-emoji { font-size: 1.6em; margin-bottom: 2px; }
+        .card-type { color: #333; font-weight: 500; }
+        .task-btn { position: fixed; top: 8px; right: 8px; background: rgba(255,255,255,0.95); padding: 8px 12px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); cursor: pointer; font-size: 0.75em; }
+        .task-btn h4 { color: #2E7D32; margin-bottom: 2px; }
+        .guide-btn { position: fixed; bottom: 165px; right: 8px; background: rgba(255,255,255,0.9); padding: 6px 12px; border-radius: 18px; cursor: pointer; font-size: 0.75em; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .game-log { position: fixed; top: 65px; left: 8px; width: 130px; max-height: 220px; background: rgba(0,0,0,0.5); border-radius: 8px; padding: 6px; color: rgba(255,255,255,0.8); font-size: 0.6em; overflow-y: auto; }
+        .log-entry { padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .log-p1 { color: #81C784; } .log-p2 { color: #64B5F6; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: white; padding: 20px; border-radius: 18px; max-width: 480px; width: 92%; text-align: center; max-height: 85vh; overflow-y: auto; }
+        .modal h2 { color: #2E7D32; margin-bottom: 8px; }
+        .modal p { color: #555; margin-bottom: 12px; line-height: 1.4; }
+        .modal-cards { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 12px 0; }
+        .modal-card { width: 85px; min-height: 115px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 0.7em; padding: 5px; }
+        .modal-card:hover { transform: scale(1.05); }
+        .modal-card.selected { border: 3px solid #81C784; box-shadow: 0 0 15px rgba(76,175,80,0.5); }
+        .modal-card-seed { background: linear-gradient(135deg, #FFE4B5, #FFDAB9); border: 2px solid #DEB887; }
+        .modal-card-seedling { background: linear-gradient(135deg, #98D8AA, #7BC88C); border: 2px solid #4CAF50; }
+        .modal-card-leaf { background: linear-gradient(135deg, #66BB6A, #4CAF50); border: 2px solid #388E3C; }
+        .modal-card-tool { background: linear-gradient(135deg, #FFB74D, #FFA726); border: 2px solid #F57C00; }
+        .modal-card-emoji { font-size: 1.8em; margin-bottom: 3px; }
+        .modal-card .plant-name { font-weight: bold; color: #5D3A1A; font-size: 0.95em; }
+        .modal-card .plant-type { color: #8B4513; font-size: 0.8em; }
+        .modal-card .plant-detail { color: #666; font-size: 0.75em; }
+        .guide-table { width: 100%; border-collapse: collapse; font-size: 0.75em; }
+        .guide-table th, .guide-table td { padding: 5px; border: 1px solid #ddd; text-align: center; }
+        .guide-table th { background: #E8F5E9; }
+        .guide-table td:first-child { font-weight: bold; background: #F1F8E9; }
+        #result-screen h2 { font-size: 2em; color: #fff; margin-bottom: 15px; }
+        .result-box { background: rgba(255,255,255,0.95); padding: 20px 35px; border-radius: 18px; margin-bottom: 20px; }
+        .result-player { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; font-size: 1em; }
+        .result-winner { background: linear-gradient(135deg, #FFF9C4, #FFEE58); margin: -20px -35px; padding: 12px 35px; border-radius: 18px 18px 0 0; }
+        .toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.85); color: white; padding: 15px 35px; border-radius: 12px; font-size: 1em; z-index: 200; display: none; animation: toastIn 0.3s ease; }
+        @keyframes toastIn { from { opacity: 0; transform: translate(-50%,-50%) scale(0.8); } }
+        @media (max-width: 850px) { .game-area { flex-direction: column; align-items: center; } .game-log { display: none; } .zones-grid { grid-template-columns: repeat(2, 1fr); } .zone { width: 85px; } }
+    </style>
+</head>
+<body>
+    <div id="start-screen" class="screen active">
+        <h1>🌱 我的花园</h1>
+        <p class="subtitle">一家人种菜，有人悄悄使坏，有人暗中帮忙</p>
+        <button class="btn btn-primary" onclick="show('mode-screen')">开始游戏</button>
+        <button class="btn btn-secondary" onclick="showRule()">游戏规则</button>
+    </div>
+    <div id="mode-screen" class="screen">
+        <h2 style="color:white;margin-bottom:25px;">选择游戏模式</h2>
+        <button class="btn btn-primary" onclick="startGame(2)">👥 双人对战</button>
+        <button class="btn btn-primary" onclick="startGame('ai')">🤖 AI对战</button>
+        <br><button class="btn btn-secondary" onclick="show('start-screen')">返回</button>
+    </div>
+    <div id="game-screen" class="screen">
+        <div class="top-bar">
+            <div class="player-card" id="p1-card"><span class="player-icon">🌿</span><div class="player-info"><span class="player-name">玩家1</span><span class="player-score" id="p1-score">0分</span></div><span class="player-task" id="p1-task">-</span></div>
+            <div class="turn-info"><div class="turn-number" id="turn-num">回合 1</div><div class="phase-hint" id="phase-hint">等待中...</div></div>
+            <div class="player-card" id="p2-card"><span class="player-icon">🌵</span><div class="player-info"><span class="player-name" id="p2-name">玩家2</span><span class="player-score" id="p2-score">0分</span></div><span class="player-task" id="p2-task">-</span></div>
+        </div>
+        <div class="task-bar" id="task-bar" style="display:none;">
+            <span class="label">🎯 我的任务:</span>
+            <span class="task-name" id="current-task-name">-</span>
+            <span class="task-desc" id="current-task-desc">-</span>
+        </div>
+        <div class="action-hint" id="action-hint">点击"抽牌"开始回合</div>
+        <div class="action-bar">
+            <button class="action-btn btn-draw" id="btn-draw" onclick="doDraw()">🃏 抽牌</button>
+            <button class="action-btn btn-plant" id="btn-plant" onclick="doPlant()" disabled>🌱 种幼苗</button>
+            <button class="action-btn btn-leaf" id="btn-leaf" onclick="doLeaf()" disabled>🍃 盖叶子</button>
+            <button class="action-btn btn-tool" id="btn-tool" onclick="doTool()" disabled>🔧 用道具</button>
+            <button class="action-btn btn-verify" id="btn-verify" onclick="doVerify()" disabled>✅ 验证</button>
+            <button class="action-btn btn-end" id="btn-end" onclick="doEndTurn()" disabled>⏭️ 结束</button>
+        </div>
+        <div class="game-area">
+            <div class="zones-container"><div class="zones-grid" id="zones-grid"></div></div>
+            <div class="side-panel">
+                <div class="panel-box"><h3>🌾 种子库</h3><div class="deck"><span class="deck-icon">🌰</span><span class="deck-count" id="seed-count">24</span></div></div>
+                <div class="panel-box"><h3>📦 主牌库</h3><div class="deck"><span class="deck-icon">📤</span><span class="deck-count" id="main-count">90</span></div></div>
+                <div class="panel-box"><h3>🗑️ 弃牌</h3><div class="discard-area" id="discard-area"><span class="discard-empty">暂无</span></div></div>
+            </div>
+        </div>
+        <div class="hand-area">
+            <div class="hand-header"><div class="hand-label"><span id="hand-player">玩家1</span><span class="hand-count" id="hand-count">0张</span></div></div>
+            <div class="hand-cards" id="hand-cards"></div>
+        </div>
+        <div class="task-btn" onclick="showMyTask()"><h4>📋 任务</h4><span id="my-task">查看</span></div>
+        <div style="position:fixed;top:8px;left:8px;z-index:50"><button class="btn" style="padding:8px 15px;font-size:0.8em;background:rgba(255,255,255,0.9);border-radius:20px;cursor:pointer" onclick="if(confirm('确定重新开始?'))startGame(isAI?'ai':2)">🔄 重新开始</button></div>
+        <div class="guide-btn" onclick="showGuide()">📖 图鉴</div>
+        <div class="game-log" id="game-log"></div>
+    </div>
+    <div id="result-screen" class="screen">
+        <h2 id="result-title">🏆 游戏结束</h2>
+        <div class="result-box" id="result-box"></div>
+        <button class="btn btn-primary" onclick="show('mode-screen')">再来一局</button>
+        <button class="btn btn-secondary" onclick="show('start-screen')">返回主菜单</button>
+    </div>
+    <div class="toast" id="toast"></div>
+    <div class="modal-overlay" id="modal"><div class="modal" id="modal-content"></div></div>
+
+    <script>
+    const EMOJI = {'单子叶':'🌾','双子叶':'🌱','卵形':'🥚','披针':'🪡','心形':'❤️','掌状':'🖐️','剪刀':'✂️','铲子':'🔧','水桶':'💧'};
+    
+    // 完整植物数据
+    const PLANTS = {
+        '百合':{type:'花卉',seedling:'单子叶',leaf:'卵形'},
+        '玉簪':{type:'花卉',seedling:'单子叶',leaf:'卵形'},
+        '鸢尾':{type:'花卉',seedling:'单子叶',leaf:'披针'},
+        '水晶花烛':{type:'花卉',seedling:'单子叶',leaf:'心形'},
+        '蒲葵':{type:'花卉',seedling:'单子叶',leaf:'掌状'},
+        '旅人蕉':{type:'花卉',seedling:'单子叶',leaf:'掌状'},
+        '月季':{type:'花卉',seedling:'双子叶',leaf:'卵形'},
+        '牵牛花':{type:'花卉',seedling:'双子叶',leaf:'心形'},
+        '香蕉':{type:'水果',seedling:'单子叶',leaf:'卵形'},
+        '菠萝':{type:'水果',seedling:'单子叶',leaf:'披针'},
+        '苹果':{type:'水果',seedling:'双子叶',leaf:'卵形'},
+        '芒果':{type:'水果',seedling:'双子叶',leaf:'披针'},
+        '石榴':{type:'水果',seedling:'双子叶',leaf:'披针'},
+        '草莓':{type:'水果',seedling:'双子叶',leaf:'心形'},
+        '百香果':{type:'水果',seedling:'双子叶',leaf:'心形'},
+        '葱':{type:'蔬菜',seedling:'单子叶',leaf:'披针'},
+        '山药':{type:'蔬菜',seedling:'单子叶',leaf:'心形'},
+        '芋头':{type:'蔬菜',seedling:'单子叶',leaf:'心形'},
+        '魔芋':{type:'蔬菜',seedling:'单子叶',leaf:'掌状'},
+        '菠菜':{type:'蔬菜',seedling:'双子叶',leaf:'卵形'},
+        '辣椒':{type:'蔬菜',seedling:'双子叶',leaf:'披针'},
+        '西瓜':{type:'水果',seedling:'双子叶',leaf:'掌状'},
+        '南瓜':{type:'蔬菜',seedling:'双子叶',leaf:'掌状'},
+        '丝瓜':{type:'蔬菜',seedling:'双子叶',leaf:'掌状'},
+    };
+    
+    function isValidCombo(seedling,leaf,seed){
+        if(typeof seed === 'string'){
+            // 图鉴模式：检查是否有任何植物匹配该类型
+            return Object.entries(PLANTS).some(([name,info])=>info.seedling===seedling&&info.leaf===leaf&&info.type===seed);
+        }
+        // 验证模式：检查是否与当前种子的要求完全匹配
+        return seed.seedling === seedling && seed.leaf === leaf;
+    }
+    
+    const SEED_DIST = {'花卉':8,'水果':7,'蔬菜':9};
+    const TASKS = [
+        {name:'🌸 花卉',desc:'每张3分',type:'花卉',score:3},
+        {name:'🍎 水果',desc:'每张3分',type:'水果',score:3},
+        {name:'🥬 蔬菜',desc:'每张3分',type:'蔬菜',score:3},
+        {name:'🍇 混合蔬果',desc:'每张2分',type:'混合',score:2},
+    ];
+    
+    let S={},isAI=false,isAITurn=false,currentAction='';
+    
+    function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
+    function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+    function toast(t){const m=document.getElementById('toast');m.textContent=t;m.style.display='block';setTimeout(()=>m.style.display='none',1800);}
+    function log(t,p){const l=document.getElementById('game-log');const e=document.createElement('div');e.className='log-entry';e.innerHTML=`<span class="log-p${p}">P${p}</span> ${t}`;l.insertBefore(e,l.firstChild);}
+    function modal(html){document.getElementById('modal-content').innerHTML=html;document.getElementById('modal').classList.add('active');}
+    function closeModal(){document.getElementById('modal').classList.remove('active');}
+
+    function startGame(mode){
+        isAI=mode==='ai';
+        document.getElementById('p2-name').textContent=isAI?'🤖 AI':'玩家2';
+        
+        // 创建种子卡池
+        const seedPool=[];
+        for(let name in PLANTS){seedPool.push({name,...PLANTS[name],revealed:false});}
+        const byType={'花卉':[],'水果':[],'蔬菜':[]};
+        seedPool.forEach(c=>byType[c.type].push(c));
+        S.seedPool=[];
+        for(let type in SEED_DIST){
+            const cards=[...byType[type]];shuffle(cards);
+            for(let i=0;i<SEED_DIST[type]&&i<cards.length;i++)S.seedPool.push({...cards[i]});
+        }
+        shuffle(S.seedPool);
+        
+        // 主牌库
+        S.MD=[];
+        for(let t of['单子叶','双子叶'])for(let i=0;i<15;i++)S.MD.push({type:'seedling',value:t});
+        for(let t of['卵形','披针','心形','掌状'])for(let i=0;i<12;i++)S.MD.push({type:'leaf',value:t});
+        for(let t of['剪刀','铲子','水桶'])for(let i=0;i<4;i++)S.MD.push({type:'tool',value:t});
+        shuffle(S.MD);
+        
+        S.P={1:{hand:[],task:null,score:0,validations:0},2:{hand:[],task:null,score:0,validations:0}};
+        S.Z=Array(4).fill(null).map(()=>({seed:null,seedling:null,leaf:null,verified:null,owner:null}));
+        S.DC=[];S.over=false;
+        
+        show('game-screen');
+        document.getElementById('game-log').innerHTML='<div class="log-entry">📍 游戏开始</div>';
+        
+        // 随机分配任务
+        const taskPool=[...TASKS];shuffle(taskPool);
+        S.P[1].task=taskPool[0];
+        S.P[2].task=taskPool[1];
+        
+        // 先展示任务
+        showMyTaskModal(1);
+    }
+
+    function showMyTaskModal(p){
+        const task=S.P[p].task;
+        let html=`<h2>🎯 你的任务</h2><p style="font-size:1.2em;color:#2E7D32;font-weight:bold">${task.name}</p><p>${task.desc}</p>`;
+        html+='<button class="btn btn-primary" onclick="closeModalAndSelectSeeds()">知道了，选择种子卡</button>';
+        modal(html);
+        window._taskPlayer=p;
+    }
+
+    function closeModalAndSelectSeeds(){
+        closeModal();
+        if(window._taskPlayer===1 && isAI){
+            // AI也展示任务
+            setTimeout(()=>{showMyTaskModal(2);},200);
+        }else if(window._taskPlayer===1){
+            // P1看完自己的任务，开始选种子
+            doInitialSeedSelect(1);
+        }else{
+            // P2看完自己的任务，开始选种子
+            doInitialSeedSelect(2);
+        }
+    }
+
+    function showTaskSelection(p){}
+
+    function doInitialSeedSelect(p){
+        // 给玩家发4张种子卡选择
+        const cards=[];for(let i=0;i<4&&S.seedPool.length>0;i++)cards.push(S.seedPool.pop());
+        
+        if(p===2 && isAI){
+            // AI自动选择并放置
+            const shuffled=[...cards];shuffle(shuffled);
+            const selected=[shuffled[0],shuffled[1]];
+            const ez=[0,1]; // AI放前两个空区域
+            S.Z[ez[0]].seed={...selected[0],revealed:false};
+            S.Z[ez[1]].seed={...selected[1],revealed:false};
+            log('AI选择了种子卡',2);
+            // 发手牌给AI
+            for(let i=0;i<4;i++)S.P[2].hand.push(S.MD.pop());
+            // 设置游戏状态并渲染
+            S.cur=1; // 设置当前玩家
+            S.turn=1; // 设置回合
+            render(); // 渲染AI的种子
+            // 继续玩家1的初始种植
+            doInitialSeedSelect(1);
+            return;
+        }
+        
+        window._initData={player:p,cards,selected:[]};
+        // 如果S.cur已设置（AI已放置种子），先渲染一次显示AI的种子
+        if(S.cur && p===1){
+            render();
+        }
+        let html=`<h2>${p===1?'🌿':'🌵'}玩家${p}初始种植</h2><p>你有${cards.length}张种子卡，选择2张</p><div class="modal-cards">`;
+        cards.forEach((c,i)=>{html+=`<div class="modal-card modal-card-seed" id="sc${i}" onclick="toggleSeedSelect(${i})"><span class="plant-name">${c.name}</span><span class="plant-type">${c.type}</span><span class="plant-detail">${EMOJI[c.seedling]}${c.seedling}/${EMOJI[c.leaf]}${c.leaf}</span></div>`;});
+        html+=`</div><p id="shint" style="color:#4CAF50">已选 0/2</p><button class="btn btn-primary" id="sbtn" onclick="chooseZonesForSeeds()" disabled>选择放置区域</button>`;
+        modal(html);
+    }
+
+    function toggleSeedSelect(i){
+        const d=window._initData,el=document.getElementById('sc'+i);
+        const idx=d.selected.indexOf(i);
+        if(idx>=0){d.selected.splice(idx,1);el.classList.remove('selected');}
+        else if(d.selected.length<2){d.selected.push(i);el.classList.add('selected');}
+        document.getElementById('shint').textContent=`已选 ${d.selected.length}/2`;
+        document.getElementById('sbtn').disabled=d.selected.length!==2;
+    }
+
+    function chooseZonesForSeeds(){
+        const d=window._initData;
+        const ez=S.Z.map((z,i)=>z.seed===null?i:-1).filter(i=>i>=0);
+        if(ez.length<2){toast('无空区域');return;}
+        window._placeData={d,ez,step:0,placements:[]};
+        let html='<h2>选择第一张卡的区域</h2><p>'+d.cards[d.selected[0]].name+' 放到：</p><div class="modal-cards">';
+        ez.forEach(zi=>{html+=`<div class="modal-card modal-card-seed" onclick="placeSeedCard(${zi})"><span style="font-size:1.3em">📍</span><span>区域${zi+1}</span></div>`;});
+        html+='</div>';
+        modal(html);
+    }
+
+    function placeSeedCard(zi){
+        const pd=window._placeData;
+        pd.placements.push(zi);
+        if(pd.step===0){
+            pd.step=1;
+            let html='<h2>选择第二张卡的区域</h2><p>'+pd.d.cards[pd.d.selected[1]].name+' 放到：</p><div class="modal-cards">';
+            pd.ez.filter(z=>z!==pd.placements[0]).forEach(z=>{html+=`<div class="modal-card modal-card-seed" onclick="placeSeedCard2(${z})"><span style="font-size:1.3em">📍</span><span>区域${z+1}</span></div>`;});
+            html+='</div>';
+            modal(html);
+        }
+    }
+
+    function placeSeedCard2(zi){
+        const pd=window._placeData;
+        const card1=pd.d.cards[pd.d.selected[0]];
+        const card2=pd.d.cards[pd.d.selected[1]];
+        S.Z[pd.placements[0]].seed={...card1,revealed:false};
+        S.Z[zi].seed={...card2,revealed:false};
+        closeModal();
+        for(let i=0;i<4;i++)S.P[pd.d.player].hand.push(S.MD.pop());
+        
+        if(pd.d.player===1){
+            // 玩家1完成，开始玩家2
+            if(isAI){
+                // AI自动放置
+                const aiCards=[];
+                for(let i=0;i<4&&S.seedPool.length>0;i++)aiCards.push(S.seedPool.pop());
+                const shuffled=[...aiCards];shuffle(shuffled);
+                const selected=[shuffled[0],shuffled[1]];
+                const ez=S.Z.map((z,i)=>z.seed===null?i:-1).filter(i=>i>=0);
+                S.Z[ez[0]].seed={...selected[0],revealed:false};
+                S.Z[ez[1]].seed={...selected[1],revealed:false};
+                log('AI放置了种子卡',2);
+                for(let i=0;i<4;i++)S.P[2].hand.push(S.MD.pop());
+            }else{
+                doInitialSeedSelect(2);
+                return;
+            }
+        }
+        // 游戏开始
+        S.cur=1;S.turn=1;
+        log('游戏开始',1);
+        render();updateHint();updateTaskBar();
+    }
+
+    function render(){
+        const p=S.cur;
+        document.getElementById('p1-card').classList.toggle('active',p===1);
+        document.getElementById('p2-card').classList.toggle('active',p===2);
+        document.getElementById('p1-score').textContent=S.P[1].score+'分';
+        document.getElementById('p2-score').textContent=S.P[2].score+'分';
+        document.getElementById('p1-task').textContent=S.P[1].task?.name.split(' ')[1]||'-';
+        document.getElementById('p2-task').textContent=S.P[2].task?.name.split(' ')[1]||'-';
+        document.getElementById('turn-num').textContent=`回合 ${S.turn}`;
+        document.getElementById('hand-player').textContent=p===1?'🌿 玩家1':'🌵 '+(isAI?'AI':'玩家2');
+        document.getElementById('hand-count').textContent=S.P[p].hand.length+'张';
+        document.getElementById('seed-count').textContent=S.seedPool.length;
+        document.getElementById('main-count').textContent=S.MD.length;
+        document.getElementById('my-task').textContent=S.P[p].task?.name.split(' ')[1]||'-';
+        
+        // 手牌
+        const h=document.getElementById('hand-cards');h.innerHTML='';
+        S.P[p].hand.forEach((c,i)=>{
+            const clickable=currentAction&&((currentAction==='plant'&&c.type==='seedling')||(currentAction==='leaf'&&c.type==='leaf')||(currentAction==='tool'&&c.type==='tool'));
+            const sel=window._selectedCard===i&&clickable;
+            let cls='card card-'+c.type+(sel?' selected':'')+(clickable?'':' disabled')+(clickable&&!sel?' clickable':'');
+            h.innerHTML+=`<div class="${cls}" onclick="${clickable?'selectHandCard('+i+')':''}"><span class="card-emoji">${EMOJI[c.value]||'📦'}</span><span class="card-type">${c.value}</span></div>`;
+        });
+        
+        // 区域
+        const z=document.getElementById('zones-grid');z.innerHTML='';
+        S.Z.forEach((zone,i)=>{
+            let cls='zone';if(zone.verified)cls+=' locked';
+            // 高亮可选区域
+            if(!zone.verified){
+                if(currentAction==='plant'&&window._selectedCard>=0&&zone.seed&&!zone.seedling)cls+=' target';
+                if(currentAction==='leaf'&&window._selectedCard>=0&&zone.seed&&zone.seedling&&!zone.leaf)cls+=' target';
+                if(currentAction==='verify'&&zone.seed&&zone.seedling&&zone.leaf)cls+=' target';
+            }
+            let html=`<div class="${cls}" onclick="clickZone(${i})"><span class="zone-num">${i+1}</span>`;
+            if(zone.owner)html+=`<span class="zone-owner">${zone.owner===1?'🌿':'🌵'}</span>`;
+            if(zone.seed){
+                const rev=zone.seed.revealed||zone.verified;
+                html+=`<div class="seed-card-display ${rev?'':'face-down'}">`;
+                if(rev)html+=`<span class="plant-name">${zone.seed.name}</span><span class="plant-type">${zone.seed.type}</span><span class="plant-detail">${EMOJI[zone.seed.seedling]}${zone.seed.seedling}</span>`;
+                else html+='?';
+                html+='</div>';
+            }
+            if(zone.seedling||zone.leaf){
+                html+='<div class="zone-cards">';
+                if(zone.seedling)html+=`<div class="mini-card mini-seedling">${EMOJI[zone.seedling.value]}<br>${zone.seedling.value.slice(0,2)}</div>`;
+                if(zone.leaf)html+=`<div class="mini-card mini-leaf">${EMOJI[zone.leaf.value]}<br>${zone.leaf.value.slice(0,2)}</div>`;
+                html+='</div>';
+            }
+            if(zone.verified)html+=`<div class="zone-status ${zone.verified}">${zone.verified==='ok'?'✅':'❌'}</div>`;
+            else if(zone.seedling&&zone.leaf)html+=`<div class="zone-status pending">可验证</div>`;
+            else if(zone.seed&&!zone.seedling)html+=`<div class="zone-status pending">需幼苗</div>`;
+            else if(zone.seedling&&!zone.leaf)html+=`<div class="zone-status pending">需叶子</div>`;
+            html+='</div>';z.innerHTML+=html;
+        });
+        
+        // 弃牌
+        const dc=document.getElementById('discard-area');
+        if(S.DC.length===0)dc.innerHTML='<span class="discard-empty">暂无</span>';
+        else dc.innerHTML=S.DC.slice(-3).map(c=>`<div class="card card-${c.type}" style="width:32px;height:44px"><span style="font-size:0.9em">${EMOJI[c.value]||'📦'}</span></div>`).join('');
+        
+        updateButtons();
+    }
+
+    function updateHint(){
+        const hints={draw:'点击"抽牌"开始回合',plant:'选择幼苗卡，再点目标区域',leaf:'选择叶子卡，再点目标区域',tool:'选择道具卡使用',verify:'点击可验证的区域',end:'结束回合'};
+        document.getElementById('phase-hint').textContent=window._acted?'可结束':'进行中';
+        document.getElementById('action-hint').textContent=currentAction?hints[currentAction]:hints.draw;
+    }
+
+    function updateTaskBar(){
+        const p=S.cur,task=S.P[p].task;
+        const tb=document.getElementById('task-bar');
+        if(task){tb.style.display='flex';document.getElementById('current-task-name').textContent=task.name;document.getElementById('current-task-desc').textContent=task.desc;}
+        else tb.style.display='none';
+    }
+
+    function updateButtons(){
+        const p=S.cur,h=S.P[p].hand;
+        const drew=window._drew,acted=window._acted;
+        const hasSD=h.some(c=>c.type==='seedling'),hasLF=h.some(c=>c.type==='leaf'),hasTL=h.some(c=>c.type==='tool');
+        const hasEmpty=S.Z.some(z=>z.seed&&!z.seedling&&!z.verified),hasLeafZone=S.Z.some(z=>z.seed&&z.seedling&&!z.leaf&&!z.verified);
+        const canVerify=S.Z.some(z=>z.seed&&z.seedling&&z.leaf&&!z.verified);
+        
+        // 简化按钮状态
+        document.getElementById('btn-draw').disabled=drew||isAITurn;
+        document.getElementById('btn-plant').disabled=!hasSD||!hasEmpty||isAITurn;
+        document.getElementById('btn-leaf').disabled=!hasLF||!hasLeafZone||isAITurn;
+        document.getElementById('btn-tool').disabled=!hasTL||isAITurn;
+        document.getElementById('btn-verify').disabled=!canVerify||isAITurn;
+        document.getElementById('btn-end').disabled=(!drew&&!acted)||isAITurn;
+        ['plant','leaf','tool'].forEach(a=>document.getElementById('btn-'+a).classList.toggle('selected',currentAction===a));
+    }
+
+    window._selectedCard=-1;window._targetZone=-1;window._drew=false;window._acted=false;
+
+    // 玩家执行完一个操作后自动结束回合
+    function finishTurn(){window._acted=true;currentAction='';window._selectedCard=-1;render();updateHint();}
+
+    function doDraw(){if(window._drew||currentAction)return;if(S.MD.length>0){S.P[S.cur].hand.push(S.MD.pop());window._drew=true;log('抽牌',S.cur);}else toast('牌库空!');render();updateHint();}
+    function doPlant(){if(currentAction==='plant'){currentAction='';window._selectedCard=-1;render();updateHint();return;}currentAction='plant';window._selectedCard=-1;window._targetZone=-1;render();updateHint();toast('选择幼苗卡');}
+    function doLeaf(){if(currentAction==='leaf'){currentAction='';window._selectedCard=-1;render();updateHint();return;}currentAction='leaf';window._selectedCard=-1;window._targetZone=-1;render();updateHint();toast('选择叶子卡');}
+    function doTool(){
+        const h=S.P[S.cur].hand;
+        const scissorsIdx=h.findIndex(c=>c.type==='tool'&&c.value==='剪刀');
+        const shovelIdx=h.findIndex(c=>c.type==='tool'&&c.value==='铲子');
+        const bucketIdx=h.findIndex(c=>c.type==='tool'&&c.value==='水桶');
+        
+        let html='<h2>🔧 选择道具</h2><div class="modal-cards">';
+        if(scissorsIdx>=0)html+=`<div class="modal-card modal-card-tool" onclick="useToolByName('剪刀')"><span style="font-size:1.5em">✂️</span><span>剪刀</span></div>`;
+        if(shovelIdx>=0)html+=`<div class="modal-card modal-card-tool" onclick="useToolByName('铲子')"><span style="font-size:1.5em">🔧</span><span>铲子</span></div>`;
+        if(bucketIdx>=0)html+=`<div class="modal-card modal-card-tool" onclick="useToolByName('水桶')"><span style="font-size:1.5em">💧</span><span>水桶</span></div>`;
+        html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';
+        modal(html);
+    }
+
+    function useToolByName(name){
+        closeModal();
+        const h=S.P[S.cur].hand;
+        const idx=h.findIndex(c=>c.type==='tool'&&c.value===name);
+        if(idx>=0){
+            h.splice(idx,1);
+            if(name==='剪刀')useScissors();
+            else if(name==='铲子')useShovel();
+            else if(name==='水桶')useBucket();
+        }
+    }
+
+    function useScissors(){
+        const可剪=S.Z.filter(z=>(z.seedling||z.leaf)&&!z.verified);
+        if(可剪.length===0){toast('无卡可剪');S.P[S.cur].hand.push({type:'tool',value:'剪刀'});render();return;}
+        let html='<h2>✂️ 剪刀</h2><p>点击要移除的幼苗或叶子</p><div class="modal-cards">';
+        可剪.forEach(z=>{
+            const zi=S.Z.indexOf(z);
+            if(z.seedling)html+=`<div class="modal-card modal-card-seedling" onclick="cutCard(${zi},'seedling')"><span style="font-size:1.5em">${EMOJI[z.seedling.value]}</span><span>${z.seedling.value}</span><span style="font-size:0.8em">区${zi+1}</span></div>`;
+            if(z.leaf)html+=`<div class="modal-card modal-card-leaf" onclick="cutCard(${zi},'leaf')"><span style="font-size:1.5em">${EMOJI[z.leaf.value]}</span><span>${z.leaf.value}</span><span style="font-size:0.8em">区${zi+1}</span></div>`;
+        });
+        html+='</div><button class="btn btn-secondary" onclick="closeModal();S.P[S.cur].hand.push({type:\'tool\',value:\'剪刀\'});render()">取消</button>';
+        modal(html);
+    }
+
+    function cutCard(zi,type){
+        const zone=S.Z[zi];
+        if(type==='seedling'&&zone.seedling){S.DC.push(zone.seedling);zone.seedling=null;log('剪掉幼苗',S.cur);}
+        else if(type==='leaf'&&zone.leaf){S.DC.push(zone.leaf);zone.leaf=null;log('剪掉叶子',S.cur);}
+        closeModal();finishTurn();
+    }
+
+    function useShovel(){
+        const可查=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified);
+        if(可查.length===0){toast('无种子可查看');return;}
+        let html='<h2>🔧 铲子</h2><p>选择区域查看/交换</p><div class="modal-cards">';
+        可查.forEach(z=>{const zi=S.Z.indexOf(z);html+=`<div class="modal-card modal-card-seed" onclick="viewSeedCard(${zi})"><span>🌰</span><span>区${zi+1}</span></div>`;});
+        html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';
+        modal(html);
+    }
+
+    function viewSeedCard(zi){
+        const zone=S.Z[zi];
+        const oldSeed=zone.seed;
+        const newSeed=S.seedPool.length>0?S.seedPool.pop():null;
+        let html=`<h2>🔧 铲子</h2><p>区${zi+1}种子: <strong style="color:#2E7D32">${oldSeed.name}</strong></p>`;
+        if(newSeed){html+=`<p>可交换为: <strong>${newSeed.name}</strong></p>`;html+=`<button class="btn btn-primary" onclick="doSwapSeed(${zi},'${newSeed.name}')">交换</button>`;}
+        html+=`<button class="btn btn-secondary" onclick="closeModal()">不交换</button>`;
+        modal(html);
+        window._tempSeed={zi,newSeed};
+    }
+
+    function doSwapSeed(zi,newName){
+        const old=S.Z[zi].seed;
+        S.Z[zi].seed={name:newName,...PLANTS[newName],revealed:false};
+        if(S.seedPool.length>0)S.seedPool.push({name:old.name,...old});
+        log('交换为'+newName,S.cur);closeModal();finishTurn();
+    }
+
+    function useBucket(){
+        const可回=S.DC.filter(c=>c.type==='seedling'||c.type==='leaf');
+        if(可回.length===0){toast('弃牌区无可回收');S.P[S.cur].hand.push({type:'tool',value:'水桶'});render();return;}
+        let html='<h2>💧 水桶</h2><p>选择要回收的卡</p><div class="modal-cards">';
+        可回.forEach((c,i)=>{
+            html+=`<div class="modal-card modal-card-${c.type}" onclick="pickFromDiscard(${i})"><span style="font-size:1.5em">${EMOJI[c.value]||'📦'}</span><span>${c.value}</span></div>`;
+        });
+        html+='</div><button class="btn btn-secondary" onclick="closeModal();S.P[S.cur].hand.push({type:\'tool\',value:\'水桶\'});render()">取消</button>';
+        modal(html);
+        window._discardChoices=可回;
+    }
+
+    function pickFromDiscard(idx){
+        const card=window._discardChoices[idx];
+        S.DC=S.DC.filter(c=>c!==card);
+        S.P[S.cur].hand.push(card);
+        log('回收'+card.value,S.cur);toast('回收: '+card.value);
+        closeModal();finishTurn();
+    }
+
+    function selectHandCard(i){
+        const c=S.P[S.cur].hand[i];
+        if(currentAction==='plant'&&c.type==='seedling'){
+            window._selectedCard=i;
+            window._targetZone=-1;
+            render();
+            toast('选择成功，现在点击要放置的区域');
+        }else if(currentAction==='leaf'&&c.type==='leaf'){
+            window._selectedCard=i;
+            window._targetZone=-1;
+            render();
+            toast('选择成功，现在点击要放置的区域');
+        }else if(currentAction==='tool'&&c.type==='tool'){
+            S.P[S.cur].hand.splice(i,1);
+            useTool(c.value);
+            window._acted=true;
+            currentAction='';
+            render();updateHint();
+        }
+    }
+
+    function clickZone(zi){
+        const zone=S.Z[zi];
+        if(currentAction==='plant'&&window._selectedCard>=0){
+            if(zone.seed&&!zone.seedling&&!zone.verified){
+                const c=S.P[S.cur].hand[window._selectedCard];
+                S.P[S.cur].hand.splice(window._selectedCard,1);
+                S.Z[zi].seedling={value:c.value};
+                log('种'+c.value+'到区'+(zi+1),S.cur);
+                finishTurn();
+            }else{
+                toast('该区域不能放幼苗');
+            }
+        }else if(currentAction==='leaf'&&window._selectedCard>=0){
+            if(zone.seed&&zone.seedling&&!zone.leaf&&!zone.verified){
+                const c=S.P[S.cur].hand[window._selectedCard];
+                S.P[S.cur].hand.splice(window._selectedCard,1);
+                S.Z[zi].leaf={value:c.value};
+                log('放'+c.value+'叶子到区'+(zi+1),S.cur);
+                finishTurn();
+            }else{
+                toast('该区域不能放叶子');
+            }
+        }else if(currentAction==='verify'&&zone.seed&&zone.seedling&&zone.leaf&&!zone.verified){
+            // 验证
+            doVerifyZone(zi);
+        }
+    }
+
+    function doVerify(){
+        const可验=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified);
+        if(可验.length===0){toast('无区域可验证');return;}
+        if(可验.length===1){
+            const zi=S.Z.indexOf(可验[0]);
+            doVerifyZone(zi);
+            return;
+        }
+        let html='<h2>选择验证区域</h2><p>点击可验证的区域</p><div class="modal-cards">';
+        可验.forEach((z)=>{
+            const zi=S.Z.indexOf(z);
+            html+=`<div class="modal-card modal-card-seedling" onclick="doVerifyZone(${zi})"><span style="font-size:1.3em">🌱</span><span>区域${zi+1}</span></div>`;
+        });
+        html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';modal(html);
+    }
+
+    function doVerifyZone(zi){
+        const zone=S.Z[zi];
+        if(!zone||!zone.seed||!zone.seedling||!zone.leaf||zone.verified)return;
+        const valid=isValidCombo(zone.seedling.value,zone.leaf.value,zone.seed);
+        zone.verified=valid?'ok':'fail';
+        zone.seed.revealed=true;
+        zone.owner=S.cur;
+        if(valid){
+            S.P[S.cur].validations++;
+            log('✅'+zone.seed.name+'验证成功',S.cur);
+            toast('验证成功!');
+        }else{
+            log('❌验证失败',S.cur);
+            toast('验证失败!');
+        }
+        closeModal();
+        checkEnd();
+        finishTurn();
+    }
+
+    function useTool(type){
+        if(type==='剪刀'){
+            const可剪=S.Z.filter(z=>z.seedling&&!z.verified);
+            if(可剪.length===0){toast('无可剪目标');S.P[S.cur].hand.push({type:'tool',value:type});return;}
+            let html='<h2>✂️ 剪刀</h2><p>选择要移除的卡</p><div class="modal-cards">';
+            可剪.forEach(z=>{const zi=S.Z.indexOf(z);if(z.seedling)html+=`<div class="modal-card modal-card-seedling" onclick="cutCard(${zi},'sd')"><span>${EMOJI[z.seedling.value]}</span><span>${z.seedling.value}</span><span>区${zi+1}</span></div>`;if(z.leaf)html+=`<div class="modal-card modal-card-leaf" onclick="cutCard(${zi},'lf')"><span>${EMOJI[z.leaf.value]}</span><span>${z.leaf.value}</span><span>区${zi+1}</span></div>`;});
+            html+='</div><button class="btn btn-secondary" onclick="closeModal();S.P[S.cur].hand.push({type:\'tool\',value:\'剪刀\'})">取消</button>';modal(html);
+        }else if(type==='铲子'){
+            const可查=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified);
+            if(可查.length===0){toast('无种子可查看');S.P[S.cur].hand.push({type:'tool',value:type});return;}
+            let html='<h2>🔧 铲子</h2><p>选择区域查看/交换</p><div class="modal-cards">';
+            可查.forEach(z=>{const zi=S.Z.indexOf(z);html+=`<div class="modal-card modal-card-seed" onclick="viewSeed(${zi})"><span>🌰</span><span>区${zi+1}</span></div>`;});
+            html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';modal(html);
+        }else if(type==='水桶'){
+            const可回=S.DC.filter(c=>c.type==='seedling'||c.type==='leaf');
+            if(可回.length===0){toast('弃牌区无可回收');S.P[S.cur].hand.push({type:'tool',value:type});return;}
+            const card=S.DC.pop();S.P[S.cur].hand.push(card);log('回收'+card.value,S.cur);toast('回收: '+EMOJI[card.value]+card.value);
+        }
+    }
+
+    function cutCard(zi,part){const z=S.Z[zi];if(part==='sd'){S.DC.push(z.seedling);z.seedling=null;log('剪掉幼苗',S.cur);}else if(part==='lf'){S.DC.push(z.leaf);z.leaf=null;log('剪掉叶子',S.cur);}closeModal();render();}
+
+    function viewSeed(zi){
+        const zone=S.Z[zi],oldSeed=zone.seed,newSeed=S.seedPool.length>0?S.seedPool.pop():null;
+        let html=`<h2>🔧 铲子</h2><p>区${zi+1}种子: <strong style="color:#2E7D32">${oldSeed.name}</strong> (${oldSeed.type})</p>`;
+        if(newSeed){html+=`<p>可交换为: <strong>${newSeed.name}</strong> (${newSeed.type})</p>`;html+=`<button class="btn btn-primary" onclick="swapSeed(${zi},'${newSeed.name}')">交换</button>`;}
+        html+=`<button class="btn btn-secondary" onclick="closeModal()">不交换</button>`;
+        window._tempSeed={zi,newSeed};modal(html);
+    }
+
+    function swapSeed(zi,newName){
+        const old=S.Z[zi].seed;
+        const newCard={name:newName,...PLANTS[newName],revealed:false};
+        S.Z[zi].seed=newCard;
+        if(S.seedPool.length>0)S.seedPool.push({name:old.name,...old});
+        log('交换为'+newName,S.cur);toast('已交换');closeModal();render();
+    }
+
+    function doEndTurn(){
+        if(S.over)return;
+        
+        if(isAI&&S.cur===1){
+            // 玩家1结束，AI回合
+            S.cur=2;
+            window._drew=false;
+            window._acted=false;
+            currentAction='';
+            window._selectedCard=-1;
+            isAITurn=true;
+            log('AI回合开始',2);
+            render();
+            updateHint();
+            // AI回合开始
+            setTimeout(()=>doAITurn(),500);
+            return;
+        }
+        
+        // 双人模式切换玩家
+        S.cur=S.cur===1?2:1;
+        if(S.cur===1){S.turn++;log('回合'+S.turn,1);}
+        window._drew=false;window._acted=false;currentAction='';window._selectedCard=-1;window._targetZone=-1;
+        log('P'+S.cur+'回合',S.cur);render();updateHint();updateTaskBar();
+    }
+
+    function doAITurn(){
+        if(S.over||!isAITurn)return;
+        log('AI回合',2);
+        
+        // AI回合：抽牌
+        if(S.MD.length>0){
+            S.P[2].hand.push(S.MD.pop());
+            log('AI抽牌',2);
+        }
+        window._drew=true;
+        render();
+        
+        // AI策略：500ms后选择一个行动执行
+        setTimeout(()=>{
+            if(S.over||!isAITurn)return;
+            
+            const taskType=S.P[2].task.type; // 花卉/水果/蔬菜/混合
+            const taskScore=S.P[2].task.score;
+            
+            // ===== 策略1：优先验证会成功的区域 =====
+            const可验成功=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified&&isValidCombo(z.seedling.value,z.leaf.value,z.seed));
+            if(可验成功.length>0){
+                // 优先验证对自己任务有用的
+                const有用=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified&&isValidCombo(z.seedling.value,z.leaf.value,z.seed)&&(taskType==='混合'||z.seed.type===taskType));
+                if(有用.length>0){
+                    const zi=S.Z.indexOf(有用[0]);
+                    log('AI验证区域'+(zi+1),2);
+                    doVerifyZone(zi);
+                    return;
+                }
+                // 如果没用，验证得分最高的
+                const allValid=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified&&isValidCombo(z.seedling.value,z.leaf.value,z.seed));
+                if(allValid.length>0){
+                    const zi=S.Z.indexOf(allValid[0]);
+                    log('AI验证区域'+(zi+1),2);
+                    doVerifyZone(zi);
+                    return;
+                }
+            }
+            
+            // ===== 策略2：种幼苗，优先匹配任务类型 =====
+            const needSeedling=S.Z.filter(z=>z.seed&&!z.seedling&&!z.verified);
+            if(needSeedling.length>0){
+                // 找匹配的幼苗
+                for(const c of S.P[2].hand){
+                    if(c.type!=='seedling')continue;
+                    for(const z of needSeedling){
+                        if(taskType==='混合'||z.seed.type===taskType){
+                            // 任务匹配的种子
+                            if(c.value===z.seed.seedling){
+                                // 完美匹配！
+                                const zi=S.Z.indexOf(z);
+                                const cIdx=S.P[2].hand.indexOf(c);
+                                S.P[2].hand.splice(cIdx,1);
+                                S.Z[zi].seedling={value:c.value};
+                                log('AI种'+c.value+'到区'+(zi+1)+'(任务匹配)',2);
+                                finishTurn();
+                                return;
+                            }
+                        }
+                    }
+                }
+                // 如果没有完美匹配，找任何能种的
+                for(const c of S.P[2].hand){
+                    if(c.type!=='seedling')continue;
+                    for(const z of needSeedling){
+                        const zi=S.Z.indexOf(z);
+                        // 尝试种在任意需要的区域
+                        const cIdx=S.P[2].hand.indexOf(c);
+                        S.P[2].hand.splice(cIdx,1);
+                        S.Z[zi].seedling={value:c.value};
+                        log('AI种'+c.value+'到区'+(zi+1),2);
+                        finishTurn();
+                        return;
+                    }
+                }
+            }
+            
+            // ===== 策略3：盖叶子，优先匹配任务类型 =====
+            const needLeaf=S.Z.filter(z=>z.seed&&z.seedling&&!z.leaf&&!z.verified);
+            if(needLeaf.length>0){
+                // 找匹配的叶子
+                for(const c of S.P[2].hand){
+                    if(c.type!=='leaf')continue;
+                    for(const z of needLeaf){
+                        if(taskType==='混合'||z.seed.type===taskType){
+                            // 任务匹配的种子
+                            if(c.value===z.seed.leaf){
+                                // 完美匹配！
+                                const zi=S.Z.indexOf(z);
+                                const cIdx=S.P[2].hand.indexOf(c);
+                                S.P[2].hand.splice(cIdx,1);
+                                S.Z[zi].leaf={value:c.value};
+                                log('AI放'+c.value+'叶子到区'+(zi+1)+'(任务匹配)',2);
+                                finishTurn();
+                                return;
+                            }
+                        }
+                    }
+                }
+                // 如果没有完美匹配，找任何能盖的
+                for(const c of S.P[2].hand){
+                    if(c.type!=='leaf')continue;
+                    for(const z of needLeaf){
+                        const zi=S.Z.indexOf(z);
+                        const cIdx=S.P[2].hand.indexOf(c);
+                        S.P[2].hand.splice(cIdx,1);
+                        S.Z[zi].leaf={value:c.value};
+                        log('AI放'+c.value+'叶子到区'+(zi+1),2);
+                        finishTurn();
+                        return;
+                    }
+                }
+            }
+            
+            // ===== 策略4：使用道具 =====
+            const hasTool=S.P[2].hand.findIndex(c=>c.type==='tool');
+            if(hasTool>=0){
+                const tool=S.P[2].hand[hasTool];
+                
+                // 水桶：回收弃牌堆中对自己有用的卡
+                if(tool.value==='水桶'&&S.DC.length>0){
+                    const useful=S.DC.filter(c=>c.type==='seedling'||c.type==='leaf');
+                    if(useful.length>0){
+                        const card=useful[0];
+                        S.DC=S.DC.filter(c=>c!==card);
+                        S.P[2].hand.push(card);
+                        S.P[2].hand.splice(hasTool,1);
+                        log('AI回收'+card.value,2);
+                        finishTurn();
+                        return;
+                    }
+                }
+                
+                // 剪刀：剪掉对手区域的幼苗（如果有的话）
+                if(tool.value==='剪刀'){
+                    const opponentZones=S.Z.filter(z=>z.seedling&&!z.verified&&z.owner===1);
+                    if(opponentZones.length>0){
+                        const z=opponentZones[0];
+                        const zi=S.Z.indexOf(z);
+                        S.DC.push(z.seedling);
+                        z.seedling=null;
+                        S.P[2].hand.splice(hasTool,1);
+                        log('AI剪掉对手区域'+(zi+1)+'的幼苗',2);
+                        finishTurn();
+                        return;
+                    }
+                }
+                
+                // 铲子：交换对自己没用的种子
+                if(tool.value==='铲子'){
+                    // 找对自己没用的种子（不是任务类型的）
+                    const useless=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified&&z.owner===2&&z.seed.type!==taskType&&taskType!=='混合');
+                    if(useless.length>0&&S.seedPool.length>0){
+                        const z=useless[0];
+                        const zi=S.Z.indexOf(z);
+                        const oldSeed=z.seed;
+                        const newSeed=S.seedPool.pop();
+                        z.seed={name:newSeed.name,...newSeed,revealed:false};
+                        S.seedPool.push({name:oldSeed.name,...oldSeed});
+                        S.P[2].hand.splice(hasTool,1);
+                        log('AI交换区域'+(zi+1)+'种子',2);
+                        finishTurn();
+                        return;
+                    }
+                }
+            }
+            
+            // ===== 策略5：没有有用行动，结束回合 =====
+            log('AI无事可做',2);
+            finishTurn();
+        },500);
+    }
+
+    function checkEnd(){const all=S.Z.filter(z=>z.seed).every(z=>z.verified);if(all){for(let p=1;p<=2;p++){const zones=S.Z.filter(z=>z.owner===p&&z.verified==='ok');const cnt={'花卉':0,'水果':0,'蔬菜':0};zones.forEach(z=>cnt[z.seed.type]++);const task=S.P[p].task;S.P[p].score=task.type==='混合'?(cnt['蔬菜']+cnt['水果'])*2:cnt[task.type]*task.score;}showResult();}}
+
+    function showResult(){
+        S.over=true;
+        const r=document.getElementById('result-box');
+        const win=S.P[1].score>S.P[2].score?1:S.P[2].score>S.P[1].score?2:0;
+        let html='';
+        for(let p=1;p<=2;p++){html+=`<div class="result-player ${p===win&&win?'result-winner':''}">${p===win&&win?'👑 ':''}<span>${p===1?'🌿':'🌵'} ${p===1?'玩家1':(isAI?'AI':'玩家2')}</span><span>${S.P[p].score}分</span></div>`;}
+        if(!win)html+='<p style="padding:10px;color:#888">平局!</p>';
+        r.innerHTML=html;
+        document.getElementById('result-title').textContent=win?(win===1?'🏆 玩家1获胜!':'🏆 '+(isAI?'AI':'玩家2')+'获胜!'):'🤝 平局';
+        show('result-screen');
+    }
+
+    function showMyTask(){const t=S.P[S.cur].task;toast('任务: '+t.name+' - '+t.desc);}
+    function showGuide(){
+        let html='<h2>📖 植物图鉴</h2><table class="guide-table"><tr><th>组合</th><th>花卉</th><th>水果</th><th>蔬菜</th></tr>';
+        const combos=[['单子叶','卵形'],['单子叶','披针'],['单子叶','心形'],['单子叶','掌状'],['双子叶','卵形'],['双子叶','披针'],['双子叶','心形'],['双子叶','掌状']];
+        combos.forEach(([sd,lf])=>{html+=`<tr><td>${EMOJI[sd]}${sd}<br>${EMOJI[lf]}${lf}</td><td>${isValidCombo(sd,lf,'花卉')?'✅':'-'}</td><td>${isValidCombo(sd,lf,'水果')?'✅':'-'}</td><td>${isValidCombo(sd,lf,'蔬菜')?'✅':'-'}</td></tr>`;});
+        html+='</table><button class="btn btn-secondary" onclick="closeModal()">关闭</button>';modal(html);
+    }
+    function showRule(){
+        let html='<h2>📋 游戏规则</h2><p style="text-align:left;font-size:0.85em;max-height:60vh;overflow-y:auto">';
+        html+='<strong>目标:</strong> 完成6个区域，按任务计分<br><br>';
+        html+='<strong>种子卡:</strong> 包含植物名+类别+幼苗类型+叶子形状<br><br>';
+        html+='<strong>每回合:</strong> 抽牌→行动→结束<br><br>';
+        html+='<strong>行动:</strong><br>🌱 种幼苗: 选幼苗卡→点目标区域<br>🍃 盖叶子: 选叶子卡→点目标种子区域<br>🔧 用道具: 剪刀移除/铲子查看交换/水桶回收<br>✅ 验证: 检查组合是否有效<br><br>';
+        html+='<strong>计分:</strong> 单一类型3分/张 混合2分/张</p>';
+        html+='<button class="btn btn-primary" onclick="closeModal()">开始!</button>';modal(html);
+    }
+    </script></body></html>
