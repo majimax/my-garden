@@ -552,7 +552,7 @@
     }
 
     function useScissors(){
-        const可剪=S.Z.filter(z=>(z.seedling||z.leaf)&&!z.verified);
+        const 可剪=S.Z.filter(z=>(z.seedling||z.leaf)&&!z.verified);
         if(可剪.length===0){toast('无卡可剪');S.P[S.cur].hand.push({type:'tool',value:'剪刀'});render();return;}
         let html='<h2>✂️ 剪刀</h2><p>点击要移除的幼苗或叶子</p><div class="modal-cards">';
         可剪.forEach(z=>{
@@ -572,7 +572,7 @@
     }
 
     function useShovel(){
-        const可查=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified);
+        const 可查=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified);
         if(可查.length===0){toast('无种子可查看');return;}
         let html='<h2>🔧 铲子</h2><p>选择区域查看/交换</p><div class="modal-cards">';
         可查.forEach(z=>{const zi=S.Z.indexOf(z);html+=`<div class="modal-card modal-card-seed" onclick="viewSeedCard(${zi})"><span>🌰</span><span>区${zi+1}</span></div>`;});
@@ -599,7 +599,7 @@
     }
 
     function useBucket(){
-        const可回=S.DC.filter(c=>c.type==='seedling'||c.type==='leaf');
+        const 可回=S.DC.filter(c=>c.type==='seedling'||c.type==='leaf');
         if(可回.length===0){toast('弃牌区无可回收');S.P[S.cur].hand.push({type:'tool',value:'水桶'});render();return;}
         let html='<h2>💧 水桶</h2><p>选择要回收的卡</p><div class="modal-cards">';
         可回.forEach((c,i)=>{
@@ -675,7 +675,7 @@
     }
 
     function doVerify(){
-        const可验=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified);
+        const 可验=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified);
         if(可验.length===0){toast('无区域可验证');return;}
         // 高亮可验证区域，等待用户点击
         currentAction='verify';
@@ -707,19 +707,19 @@
 
     function useTool(type){
         if(type==='剪刀'){
-            const可剪=S.Z.filter(z=>z.seedling&&!z.verified);
+            const 可剪=S.Z.filter(z=>z.seedling&&!z.verified);
             if(可剪.length===0){toast('无可剪目标');S.P[S.cur].hand.push({type:'tool',value:type});return;}
             let html='<h2>✂️ 剪刀</h2><p>选择要移除的卡</p><div class="modal-cards">';
             可剪.forEach(z=>{const zi=S.Z.indexOf(z);if(z.seedling)html+=`<div class="modal-card modal-card-seedling" onclick="cutCard(${zi},'sd')"><span>${EMOJI[z.seedling.value]}</span><span>${z.seedling.value}</span><span>区${zi+1}</span></div>`;if(z.leaf)html+=`<div class="modal-card modal-card-leaf" onclick="cutCard(${zi},'lf')"><span>${EMOJI[z.leaf.value]}</span><span>${z.leaf.value}</span><span>区${zi+1}</span></div>`;});
             html+='</div><button class="btn btn-secondary" onclick="closeModal();S.P[S.cur].hand.push({type:\'tool\',value:\'剪刀\'})">取消</button>';modal(html);
         }else if(type==='铲子'){
-            const可查=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified);
+            const 可查=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified);
             if(可查.length===0){toast('无种子可查看');S.P[S.cur].hand.push({type:'tool',value:type});return;}
             let html='<h2>🔧 铲子</h2><p>选择区域查看/交换</p><div class="modal-cards">';
             可查.forEach(z=>{const zi=S.Z.indexOf(z);html+=`<div class="modal-card modal-card-seed" onclick="viewSeed(${zi})"><span>🌰</span><span>区${zi+1}</span></div>`;});
             html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';modal(html);
         }else if(type==='水桶'){
-            const可回=S.DC.filter(c=>c.type==='seedling'||c.type==='leaf');
+            const 可回=S.DC.filter(c=>c.type==='seedling'||c.type==='leaf');
             if(可回.length===0){toast('弃牌区无可回收');S.P[S.cur].hand.push({type:'tool',value:type});return;}
             const card=S.DC.pop();S.P[S.cur].hand.push(card);log('回收'+card.value,S.cur);toast('回收: '+EMOJI[card.value]+card.value);
             closeModal();finishTurn();
@@ -790,10 +790,10 @@
             const taskScore=S.P[2].task.score;
             
             // ===== 策略1：优先验证会成功的区域 =====
-            const可验成功=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified&&isValidCombo(z.seedling.value,z.leaf.value,z.seed));
+            const 可验成功=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified&&isValidCombo(z.seedling.value,z.leaf.value,z.seed));
             if(可验成功.length>0){
                 // 优先验证对自己任务有用的
-                const有用=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified&&isValidCombo(z.seedling.value,z.leaf.value,z.seed)&&(taskType==='混合'||z.seed.type===taskType));
+                const 有用=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified&&isValidCombo(z.seedling.value,z.leaf.value,z.seed)&&(taskType==='混合'||z.seed.type===taskType));
                 if(有用.length>0){
                     const zi=S.Z.indexOf(有用[0]);
                     log('AI验证区域'+(zi+1),2);
