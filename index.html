@@ -566,8 +566,9 @@
 
     function cutCard(zi,type){
         const zone=S.Z[zi];
-        if(type==='seedling'&&zone.seedling){S.DC.push(zone.seedling);zone.seedling=null;log('剪掉幼苗',S.cur);}
-        else if(type==='leaf'&&zone.leaf){S.DC.push(zone.leaf);zone.leaf=null;log('剪掉叶子',S.cur);}
+        if(!zone)return;
+        if((type==='seedling'||type==='sd')&&zone.seedling){S.DC.push(zone.seedling);zone.seedling=null;log('剪掉幼苗',S.cur);}
+        else if((type==='leaf'||type==='lf')&&zone.leaf){S.DC.push(zone.leaf);zone.leaf=null;log('剪掉叶子',S.cur);}
         closeModal();finishTurn();
     }
 
@@ -726,7 +727,7 @@
         }
     }
 
-    function cutCard(zi,part){const z=S.Z[zi];if(part==='sd'){S.DC.push(z.seedling);z.seedling=null;log('剪掉幼苗',S.cur);}else if(part==='lf'){S.DC.push(z.leaf);z.leaf=null;log('剪掉叶子',S.cur);}closeModal();finishTurn();}
+    
 
     function viewSeed(zi){
         const zone=S.Z[zi],oldSeed=zone.seed,newSeed=S.seedPool.length>0?S.seedPool.pop():null;
