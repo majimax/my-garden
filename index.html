@@ -412,7 +412,9 @@
                 log('AI放置了种子卡',2);
                 for(let i=0;i<4;i++)S.P[2].hand.push(S.MD.pop());
             }else{
-                doInitialSeedSelect(2);
+                // 双人模式：先展示玩家2的任务
+                closeModal();
+                setTimeout(()=>{showMyTaskModal(2);},200);
                 return;
             }
         }
