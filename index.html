@@ -310,8 +310,9 @@
     function closeModalAndSelectSeeds(){
         closeModal();
         if(window._taskPlayer===1 && isAI){
-            // AI也展示任务
-            setTimeout(()=>{showMyTaskModal(2);},200);
+            // AI模式：玩家1看完任务后，直接进入玩家1初始种子选择
+            // AI的任务不需要展示（对玩家不可见）
+            doInitialSeedSelect(1);
         }else if(window._taskPlayer===1){
             // P1看完自己的任务，开始选种子
             doInitialSeedSelect(1);
@@ -399,7 +400,7 @@
         for(let i=0;i<4;i++)S.P[pd.d.player].hand.push(S.MD.pop());
         
         if(pd.d.player===1){
-            // 玩家1完成，开始玩家2
+            // 玩家1完成初始种子选择，检查是否需要处理玩家2
             if(isAI){
                 // AI自动放置
                 const aiCards=[];
@@ -411,6 +412,11 @@
                 S.Z[ez[1]].seed={...selected[1],revealed:false};
                 log('AI放置了种子卡',2);
                 for(let i=0;i<4;i++)S.P[2].hand.push(S.MD.pop());
+                // AI放置完毕，直接开始游戏
+                S.cur=1;S.turn=1;
+                log('游戏开始',1);
+                render();updateHint();updateTaskBar();
+                return;
             }else{
                 // 双人模式：先展示玩家2的任务
                 closeModal();
@@ -418,6 +424,7 @@
                 return;
             }
         }
+        // 玩家2完成（或双人模式玩家2看完任务后选择种子）
         // 游戏开始
         S.cur=1;S.turn=1;
         log('游戏开始',1);
