@@ -529,7 +529,20 @@
     window._selectedCard=-1;window._targetZone=-1;window._drew=false;window._acted=false;
 
     // 玩家执行完一个操作后自动结束回合
-    function finishTurn(){window._acted=true;currentAction='';window._selectedCard=-1;render();updateHint();}
+    function finishTurn(){
+        window._acted=true;
+        currentAction='';
+        window._selectedCard=-1;
+        render();
+        updateHint();
+        // AI模式：执行完操作后自动结束回合，切换到玩家1
+        if(isAI && isAITurn && S.cur===2){
+            setTimeout(()=>{
+                // 模拟点击结束按钮
+                doEndTurn();
+            },300);
+        }
+    }
 
     function doDraw(){if(window._drew||currentAction)return;if(S.MD.length>0){S.P[S.cur].hand.push(S.MD.pop());window._drew=true;log('抽牌',S.cur);}else toast('牌库空!');render();updateHint();}
     function doPlant(){if(currentAction==='plant'){currentAction='';window._selectedCard=-1;render();updateHint();return;}currentAction='plant';window._selectedCard=-1;window._targetZone=-1;render();updateHint();toast('选择幼苗卡');}
