@@ -788,7 +788,10 @@
         
         // 双人模式切换玩家
         S.cur=S.cur===1?2:1;
-        if(S.cur===1){S.turn++;log('回合'+S.turn,1);}
+        if(S.cur===1){
+            S.turn++;log('回合'+S.turn,1);
+            isAITurn=false; // 切换回玩家1，重置AI状态
+        }
         window._drew=false;window._acted=false;currentAction='';window._selectedCard=-1;window._targetZone=-1;
         log('P'+S.cur+'回合',S.cur);render();updateHint();updateTaskBar();
     }
