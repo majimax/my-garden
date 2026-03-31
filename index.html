@@ -413,6 +413,7 @@
                 log('AI放置了种子卡',2);
                 for(let i=0;i<4;i++)S.P[2].hand.push(S.MD.pop());
                 // AI放置完毕，直接开始游戏
+                closeModal(); // 关闭选择区域的模态框
                 S.cur=1;S.turn=1;
                 log('游戏开始',1);
                 render();updateHint();updateTaskBar();
