@@ -818,26 +818,24 @@
             // ===== 策略1：验证所有可验证区域（优先自己得分，其次阻止对手得分）=====
             const 可验=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified);
             if(可验.length>0){
-                // 按优先级排序：
-                // 1. AI自己任务匹配且会成功的（得分）
-                // 2. 玩家任务匹配且会成功的（捣乱，阻止对手得分）
-                // 3. AI任务不匹配但会成功的（得分）
-                // 4. 玩家任务不匹配但会成功的（捣乱）
                 const 会成功=可验.filter(z=>isValidCombo(z.seedling.value,z.leaf.value,z.seed));
                 const 会失败=可验.filter(z=>!isValidCombo(z.seedling.value,z.leaf.value,z.seed));
                 
-                // AI自己任务匹配的
                 const AI任务成功=会成功.filter(z=>taskType==='混合'||z.seed.type===taskType);
-                // 玩家任务匹配的
                 const P1任务成功=会成功.filter(z=>taskType!=='混合'&&z.seed.type!==taskType);
-                // 其他成功的
                 const 其他成功=会成功.filter(z=>taskType!=='混合'&&z.seed.type===taskType);
                 
                 let 目标区=null,理由='';
-                if(AI任务成功.length>0){目标区=AI任务成功[0];理由='任务匹配';}
-                else if(P1任务成功.length>0){目标区=P1任务成功[0];理由='阻止对手';}
-                else if(其他成功.length>0){目标区=其他成功[0];理由='得分';}
-                else if(会失败.length>0){目标区=会失败[0];理由='无效区域';}
+                // 优先自己任务，随机选一个
+                if(AI任务成功.length>0){目标区=AI任务成功[Math.floor(Math.random()*AI任务成功.length)];理由='任务匹配';}
+                else if(P1任务成功.length>0){目标区=P1任务成功[Math.floor(Math.random()*P1任务成功.length)];理由='阻止对手';}
+                else if(其他成功.length>0){目标区=其他成功[Math.floor(Math.random()*其他成功.length)];理由='得分';}
+                // 未知情况：有30%概率随机验证一个会失败的区域来干扰对手
+                else if(会失败.length>0){
+                    if(Math.random()<0.3){
+                        目标区=会失败[Math.floor(Math.random()*会失败.length)];理由='随机干扰';
+                    }
+                }
                 
                 if(目标区){
                     const zi=S.Z.indexOf(目标区);
@@ -849,89 +847,89 @@
             
             // ===== 策略2：种幼苗，优先匹配任务类型 =====
             const needSeedling=S.Z.filter(z=>z.seed&&!z.seedling&&!z.verified);
-            if(needSeedling.length>0){
-                // 找匹配的幼苗
-                for(const c of S.P[2].hand){
-                    if(c.type!=='seedling')continue;
+            const 可种幼苗=S.P[2].hand.filter(c=>c.type==='seedling');
+            if(needSeedling.length>0&&可种幼苗.length>0){
+                // 找所有完美匹配（种子类型+幼苗值）
+                const 完美匹配=[];
+                for(const c of 可种幼苗){
                     for(const z of needSeedling){
-                        if(taskType==='混合'||z.seed.type===taskType){
-                            // 任务匹配的种子
-                            if(c.value===z.seed.seedling){
-                                // 完美匹配！
-                                const zi=S.Z.indexOf(z);
-                                const cIdx=S.P[2].hand.indexOf(c);
-                                S.P[2].hand.splice(cIdx,1);
-                                S.Z[zi].seedling={value:c.value};
-                                log('AI种'+c.value+'到区'+(zi+1)+'(任务匹配)',2);
-                                finishTurn();
-                                return;
-                            }
+                        if((taskType==='混合'||z.seed.type===taskType)&&c.value===z.seed.seedling){
+                            完美匹配.push({card:c,zone:z});
                         }
                     }
                 }
-                // 如果没有完美匹配，找任何能种的
-                for(const c of S.P[2].hand){
-                    if(c.type!=='seedling')continue;
-                    for(const z of needSeedling){
-                        const zi=S.Z.indexOf(z);
-                        // 尝试种在任意需要的区域
-                        const cIdx=S.P[2].hand.indexOf(c);
-                        S.P[2].hand.splice(cIdx,1);
-                        S.Z[zi].seedling={value:c.value};
-                        log('AI种'+c.value+'到区'+(zi+1),2);
-                        finishTurn();
-                        return;
-                    }
+                if(完美匹配.length>0){
+                    const pick=完美匹配[Math.floor(Math.random()*完美匹配.length)];
+                    const zi=S.Z.indexOf(pick.zone);
+                    const cIdx=S.P[2].hand.indexOf(pick.card);
+                    S.P[2].hand.splice(cIdx,1);
+                    S.Z[zi].seedling={value:pick.card.value};
+                    log('AI种'+pick.card.value+'到区'+(zi+1)+'(任务匹配)',2);
+                    finishTurn();
+                    return;
+                }
+                // 随机种在不完美匹配的区域
+                if(needSeedling.length>0){
+                    const z=needSeedling[Math.floor(Math.random()*needSeedling.length)];
+                    const c=可种幼苗[Math.floor(Math.random()*可种幼苗.length)];
+                    const zi=S.Z.indexOf(z);
+                    const cIdx=S.P[2].hand.indexOf(c);
+                    S.P[2].hand.splice(cIdx,1);
+                    S.Z[zi].seedling={value:c.value};
+                    log('AI种'+c.value+'到区'+(zi+1)+'(随机)',2);
+                    finishTurn();
+                    return;
                 }
             }
             
             // ===== 策略3：盖叶子，优先匹配任务类型 =====
             const needLeaf=S.Z.filter(z=>z.seed&&z.seedling&&!z.leaf&&!z.verified);
-            if(needLeaf.length>0){
-                // 找匹配的叶子
-                for(const c of S.P[2].hand){
-                    if(c.type!=='leaf')continue;
+            const 可用叶子=S.P[2].hand.filter(c=>c.type==='leaf');
+            if(needLeaf.length>0&&可用叶子.length>0){
+                // 找所有完美匹配
+                const 完美匹配=[];
+                for(const c of 可用叶子){
                     for(const z of needLeaf){
-                        if(taskType==='混合'||z.seed.type===taskType){
-                            // 任务匹配的种子
-                            if(c.value===z.seed.leaf){
-                                // 完美匹配！
-                                const zi=S.Z.indexOf(z);
-                                const cIdx=S.P[2].hand.indexOf(c);
-                                S.P[2].hand.splice(cIdx,1);
-                                S.Z[zi].leaf={value:c.value};
-                                log('AI放'+c.value+'叶子到区'+(zi+1)+'(任务匹配)',2);
-                                finishTurn();
-                                return;
-                            }
+                        if((taskType==='混合'||z.seed.type===taskType)&&c.value===z.seed.leaf){
+                            完美匹配.push({card:c,zone:z});
                         }
                     }
                 }
-                // 如果没有完美匹配，找任何能盖的
-                for(const c of S.P[2].hand){
-                    if(c.type!=='leaf')continue;
-                    for(const z of needLeaf){
-                        const zi=S.Z.indexOf(z);
-                        const cIdx=S.P[2].hand.indexOf(c);
-                        S.P[2].hand.splice(cIdx,1);
-                        S.Z[zi].leaf={value:c.value};
-                        log('AI放'+c.value+'叶子到区'+(zi+1),2);
-                        finishTurn();
-                        return;
-                    }
+                if(完美匹配.length>0){
+                    const pick=完美匹配[Math.floor(Math.random()*完美匹配.length)];
+                    const zi=S.Z.indexOf(pick.zone);
+                    const cIdx=S.P[2].hand.indexOf(pick.card);
+                    S.P[2].hand.splice(cIdx,1);
+                    S.Z[zi].leaf={value:pick.card.value};
+                    log('AI放'+pick.card.value+'叶子到区'+(zi+1)+'(任务匹配)',2);
+                    finishTurn();
+                    return;
+                }
+                // 随机盖在不完美匹配的区域
+                if(needLeaf.length>0){
+                    const z=needLeaf[Math.floor(Math.random()*needLeaf.length)];
+                    const c=可用叶子[Math.floor(Math.random()*可用叶子.length)];
+                    const zi=S.Z.indexOf(z);
+                    const cIdx=S.P[2].hand.indexOf(c);
+                    S.P[2].hand.splice(cIdx,1);
+                    S.Z[zi].leaf={value:c.value};
+                    log('AI放'+c.value+'叶子到区'+(zi+1)+'(随机)',2);
+                    finishTurn();
+                    return;
                 }
             }
+            }
             
-            // ===== 策略4：使用道具 =====
+            // ===== 策略4：使用道具（随机性决策）=====
             const hasTool=S.P[2].hand.findIndex(c=>c.type==='tool');
-            if(hasTool>=0){
+            if(hasTool>=0&&Math.random()<0.7){ // 70%概率使用道具
                 const tool=S.P[2].hand[hasTool];
                 
                 // 水桶：回收弃牌堆中对自己有用的卡
                 if(tool.value==='水桶'&&S.DC.length>0){
                     const useful=S.DC.filter(c=>c.type==='seedling'||c.type==='leaf');
                     if(useful.length>0){
-                        const card=useful[0];
+                        const card=useful[Math.floor(Math.random()*useful.length)];
                         S.DC=S.DC.filter(c=>c!==card);
                         S.P[2].hand.push(card);
                         S.P[2].hand.splice(hasTool,1);
@@ -941,11 +939,12 @@
                     }
                 }
                 
-                // 剪刀：剪掉对手区域的幼苗（如果有的话）
+                // 剪刀：优先剪对手，随机选一个目标
                 if(tool.value==='剪刀'){
                     const opponentZones=S.Z.filter(z=>z.seedling&&!z.verified&&z.owner===1);
+                    const myZones=S.Z.filter(z=>z.seedling&&!z.verified&&z.owner===2);
                     if(opponentZones.length>0){
-                        const z=opponentZones[0];
+                        const z=opponentZones[Math.floor(Math.random()*opponentZones.length)];
                         const zi=S.Z.indexOf(z);
                         S.DC.push(z.seedling);
                         z.seedling=null;
@@ -953,22 +952,31 @@
                         log('AI剪掉对手区域'+(zi+1)+'的幼苗',2);
                         finishTurn();
                         return;
+                    }else if(myZones.length>0&&Math.random()<0.3){
+                        // 30%概率剪自己的（重新规划）
+                        const z=myZones[Math.floor(Math.random()*myZones.length)];
+                        const zi=S.Z.indexOf(z);
+                        S.DC.push(z.seedling);
+                        z.seedling=null;
+                        S.P[2].hand.splice(hasTool,1);
+                        log('AI剪掉自己区域'+(zi+1)+'的幼苗(重新规划)',2);
+                        finishTurn();
+                        return;
                     }
                 }
                 
-                // 铲子：交换对自己没用的种子
+                // 铲子：随机决定是否交换
                 if(tool.value==='铲子'){
-                    // 找对自己没用的种子（不是任务类型的）
-                    const useless=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified&&z.owner===2&&z.seed.type!==taskType&&taskType!=='混合');
-                    if(useless.length>0&&S.seedPool.length>0){
-                        const z=useless[0];
+                    const mySeeds=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified&&z.owner===2);
+                    if(mySeeds.length>0&&S.seedPool.length>0&&Math.random()<0.5){
+                        const z=mySeeds[Math.floor(Math.random()*mySeeds.length)];
                         const zi=S.Z.indexOf(z);
                         const oldSeed=z.seed;
                         const newSeed=S.seedPool.pop();
                         z.seed={name:newSeed.name,...newSeed,revealed:false};
                         S.seedPool.push({name:oldSeed.name,...oldSeed});
                         S.P[2].hand.splice(hasTool,1);
-                        log('AI交换区域'+(zi+1)+'种子',2);
+                        log('AI交换区域'+(zi+1)+'种子(随机)',2);
                         finishTurn();
                         return;
                     }
