@@ -1006,55 +1006,52 @@
         const r=document.getElementById('result-box');
         const win=S.P[1].score>S.P[2].score?1:S.P[2].score>S.P[1].score?2:0;
         
-        // 统计每个玩家的区域情况
-        const p1Zones=S.Z.map((z,i)=>({...z,index:i})).filter(z=>z.owner===1);
-        const p2Zones=S.Z.map((z,i)=>({...z,index:i})).filter(z=>z.owner===2);
+        // 统计成功区域
+        const cnt={'花卉':0,'水果':0,'蔬菜':0};
+        S.Z.filter(z=>z.verified==='ok').forEach(z=>cnt[z.seed.type]++);
         
-        let html='<div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">';
+        let html='<div style="max-width:500px;margin:0 auto;">';
         
-        // 玩家1结果
-        html+='<div style="flex:1;min-width:280px;background:#f8f8f8;border-radius:12px;padding:15px;">';
-        html+=`<div style="text-align:center;font-weight:bold;font-size:1.1em;color:#2E7D32;margin-bottom:10px;">🌿 玩家1</div>`;
-        html+=`<div style="text-align:center;background:#e8f5e9;padding:8px;border-radius:8px;margin-bottom:10px;">任务: ${S.P[1].task.name}<br><span style="font-size:0.85em;color:#666">${S.P[1].task.desc}</span></div>`;
-        html+='<div style="font-weight:bold;margin-bottom:5px;">区域:</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;">';
-        for(const z of S.Z.filter(z=>z.owner===1)){
-            const status=z.verified==='ok'?'✅':'❌';
+        // 成功区域一览
+        html+='<div style="background:#f5f5f5;border-radius:12px;padding:15px;margin-bottom:15px;">';
+        html+='<div style="text-align:center;font-weight:bold;margin-bottom:10px;">🌱 场地成功区域</div>';
+        html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">';
+        S.Z.forEach((z,i)=>{
+            const ok=z.verified==='ok';
             const typeColor={'花卉':'#e91e63','水果':'#ff9800','蔬菜':'#4caf50'}[z.seed.type]||'#666';
-            html+=`<div style="background:white;padding:6px;border-radius:6px;font-size:0.85em;text-align:center;">
-                <div>${status} 区${z.index+1}</div>
-                <div style="color:${typeColor};font-weight:bold">${z.seed.name}</div>
-                <div style="color:#888">${EMOJI[z.seedling.value]}${z.seedling.value}/${EMOJI[z.leaf.value]}${z.leaf.value}</div>
+            html+=`<div style="background:${ok?'#e8f5e9':'#ffebee'};padding:8px;border-radius:8px;text-align:center;">
+                <div style="font-weight:bold">${ok?'✅':'❌'} 区${i+1}</div>
+                <div style="color:${typeColor}">${z.seed.name}</div>
             </div>`;
-        }
-        html+='</div>';
-        const p1Cnt=p1Zones.filter(z=>z.verified==='ok').length;
-        html+=`<div style="text-align:center;margin-top:10px;padding:10px;background:#2E7D32;color:white;border-radius:8px;font-size:1.2em;">${S.P[1].score}分 ${win===1?'👑':''}</div>`;
+        });
+        html+='</div></div>';
+        
+        // 计分统计
+        html+='<div style="background:#fffde7;border-radius:12px;padding:15px;margin-bottom:15px;text-align:center;">';
+        html+='<div style="font-weight:bold;margin-bottom:8px;">📊 计分</div>';
+        html+=`<div>花卉 ${cnt['花卉']}个 × 3分 + 水果 ${cnt['水果']}个 × 3分 + 蔬菜 ${cnt['蔬菜']}个 × 3分</div>`;
         html+='</div>';
         
-        // 玩家2/AI结果
+        // 双方分数
+        html+='<div style="display:flex;gap:15px;justify-content:center;">';
+        html+=`<div style="flex:1;background:#e8f5e9;border-radius:12px;padding:15px;text-align:center;">
+            <div style="font-weight:bold;color:#2E7D32;margin-bottom:5px;">🌿 玩家1</div>
+            <div style="font-size:0.9em;color:#666;margin-bottom:5px;">${S.P[1].task.name}</div>
+            <div style="font-size:1.8em;font-weight:bold;color:#2E7D32;">${S.P[1].score}分</div>
+            ${win===1?'<div>👑</div>':''}
+        </div>`;
         const p2Name=isAI?'🤖 AI':'🌵 玩家2';
-        html+='<div style="flex:1;min-width:280px;background:#f8f8f8;border-radius:12px;padding:15px;">';
-        html+=`<div style="text-align:center;font-weight:bold;font-size:1.1em;color:#1976D2;margin-bottom:10px;">${p2Name}</div>`;
-        html+=`<div style="text-align:center;background:#e3f2fd;padding:8px;border-radius:8px;margin-bottom:10px;">任务: ${S.P[2].task.name}<br><span style="font-size:0.85em;color:#666">${S.P[2].task.desc}</span></div>`;
-        html+='<div style="font-weight:bold;margin-bottom:5px;">区域:</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;">';
-        for(const z of S.Z.filter(z=>z.owner===2)){
-            const status=z.verified==='ok'?'✅':'❌';
-            const typeColor={'花卉':'#e91e63','水果':'#ff9800','蔬菜':'#4caf50'}[z.seed.type]||'#666';
-            html+=`<div style="background:white;padding:6px;border-radius:6px;font-size:0.85em;text-align:center;">
-                <div>${status} 区${z.index+1}</div>
-                <div style="color:${typeColor};font-weight:bold">${z.seed.name}</div>
-                <div style="color:#888">${EMOJI[z.seedling.value]}${z.seedling.value}/${EMOJI[z.leaf.value]}${z.leaf.value}</div>
-            </div>`;
-        }
-        html+='</div>';
-        const p2Cnt=p2Zones.filter(z=>z.verified==='ok').length;
-        html+=`<div style="text-align:center;margin-top:10px;padding:10px;background:#1976D2;color:white;border-radius:8px;font-size:1.2em;">${S.P[2].score}分 ${win===2?'👑':''}</div>`;
+        html+=`<div style="flex:1;background:#e3f2fd;border-radius:12px;padding:15px;text-align:center;">
+            <div style="font-weight:bold;color:#1976D2;margin-bottom:5px;">${p2Name}</div>
+            <div style="font-size:0.9em;color:#666;margin-bottom:5px;">${S.P[2].task.name}</div>
+            <div style="font-size:1.8em;font-weight:bold;color:#1976D2;">${S.P[2].score}分</div>
+            ${win===2?'<div>👑</div>':''}
+        </div>`;
         html+='</div>';
         
+        if(!win)html+='<p style="text-align:center;padding:15px;color:#888;font-size:1.1em;">🤝 平局!</p>';
+        
         html+='</div>';
-        
-        if(!win)html+='<p style="text-align:center;padding:10px;color:#888;font-size:1.1em;">🤝 平局!</p>';
-        
         r.innerHTML=html;
         document.getElementById('result-title').textContent=win?(win===1?'🏆 玩家1获胜!':'🏆 '+(isAI?'AI':'玩家2')+'获胜!'):'🤝 平局';
         show('result-screen');
