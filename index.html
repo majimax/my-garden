@@ -989,7 +989,17 @@
         },500);
     }
 
-    function checkEnd(){const all=S.Z.filter(z=>z.seed).every(z=>z.verified);if(all){for(let p=1;p<=2;p++){const zones=S.Z.filter(z=>z.owner===p&&z.verified==='ok');const cnt={'花卉':0,'水果':0,'蔬菜':0};zones.forEach(z=>cnt[z.seed.type]++);const task=S.P[p].task;S.P[p].score=task.type==='混合'?(cnt['蔬菜']+cnt['水果'])*2:cnt[task.type]*task.score;}showResult();}}
+    function checkEnd(){const all=S.Z.filter(z=>z.seed).every(z=>z.verified);if(all){
+            // 统计所有成功验证的区域（不看谁验证的）
+            const cnt={'花卉':0,'水果':0,'蔬菜':0};
+            S.Z.filter(z=>z.verified==='ok').forEach(z=>cnt[z.seed.type]++);
+            // 每个人按自己任务计分
+            for(let p=1;p<=2;p++){
+                const task=S.P[p].task;
+                S.P[p].score=task.type==='混合'?(cnt['蔬菜']+cnt['水果'])*2:cnt[task.type]*task.score;
+            }
+            showResult();
+        }}
 
     function showResult(){
         S.over=true;
