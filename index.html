@@ -815,22 +815,33 @@
             const taskType=S.P[2].task.type; // 花卉/水果/蔬菜/混合
             const taskScore=S.P[2].task.score;
             
-            // ===== 策略1：优先验证会成功的区域 =====
-            const 可验成功=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified&&isValidCombo(z.seedling.value,z.leaf.value,z.seed));
-            if(可验成功.length>0){
-                // 优先验证对自己任务有用的
-                const 有用=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified&&isValidCombo(z.seedling.value,z.leaf.value,z.seed)&&(taskType==='混合'||z.seed.type===taskType));
-                if(有用.length>0){
-                    const zi=S.Z.indexOf(有用[0]);
-                    log('AI验证区域'+(zi+1),2);
-                    doVerifyZone(zi);
-                    return;
-                }
-                // 如果没用，验证得分最高的
-                const allValid=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified&&isValidCombo(z.seedling.value,z.leaf.value,z.seed));
-                if(allValid.length>0){
-                    const zi=S.Z.indexOf(allValid[0]);
-                    log('AI验证区域'+(zi+1),2);
+            // ===== 策略1：验证所有可验证区域（优先自己得分，其次阻止对手得分）=====
+            const 可验=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified);
+            if(可验.length>0){
+                // 按优先级排序：
+                // 1. AI自己任务匹配且会成功的（得分）
+                // 2. 玩家任务匹配且会成功的（捣乱，阻止对手得分）
+                // 3. AI任务不匹配但会成功的（得分）
+                // 4. 玩家任务不匹配但会成功的（捣乱）
+                const 会成功=可验.filter(z=>isValidCombo(z.seedling.value,z.leaf.value,z.seed));
+                const 会失败=可验.filter(z=>!isValidCombo(z.seedling.value,z.leaf.value,z.seed));
+                
+                // AI自己任务匹配的
+                const AI任务成功=会成功.filter(z=>taskType==='混合'||z.seed.type===taskType);
+                // 玩家任务匹配的
+                const P1任务成功=会成功.filter(z=>taskType!=='混合'&&z.seed.type!==taskType);
+                // 其他成功的
+                const 其他成功=会成功.filter(z=>taskType!=='混合'&&z.seed.type===taskType);
+                
+                let 目标区=null,理由='';
+                if(AI任务成功.length>0){目标区=AI任务成功[0];理由='任务匹配';}
+                else if(P1任务成功.length>0){目标区=P1任务成功[0];理由='阻止对手';}
+                else if(其他成功.length>0){目标区=其他成功[0];理由='得分';}
+                else if(会失败.length>0){目标区=会失败[0];理由='无效区域';}
+                
+                if(目标区){
+                    const zi=S.Z.indexOf(目标区);
+                    log('AI验证区域'+(zi+1)+'('+理由+')',2);
                     doVerifyZone(zi);
                     return;
                 }
