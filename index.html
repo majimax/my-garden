@@ -696,27 +696,23 @@
 
     function useToolByName(name){
         closeModal();
-        const h=S.P[S.cur].hand;
-        const idx=h.findIndex(c=>c.type==='tool'&&c.value===name);
-        if(idx>=0){
-            h.splice(idx,1);
-            if(name==='剪刀')useScissors();
-            else if(name==='铲子')useShovel();
-            else if(name==='水桶')useBucket();
-        }
+        // 保留道具在手牌，等玩家选择后再处理
+        if(name==='剪刀')useScissors();
+        else if(name==='铲子')useShovel();
+        else if(name==='水桶')useBucket();
     }
 
     function useScissors(){
         if(window._usedTool){toast('本回合已使用道具');return;}
         const 可剪=S.Z.filter(z=>(z.seedling||z.leaf)&&!z.verified);
-        if(可剪.length===0){toast('无卡可剪');S.P[S.cur].hand.push({type:'tool',value:'剪刀'});render();return;}
+        if(可剪.length===0){toast('无卡可剪');render();return;}
         let html='<h2>✂️ 剪刀</h2><p>点击要移除的幼苗或叶子</p><div class="modal-cards">';
         可剪.forEach(z=>{
             const zi=S.Z.indexOf(z);
             if(z.seedling)html+=`<div class="modal-card modal-card-seedling" onclick="cutCard(${zi},'seedling')"><span style="font-size:1.5em">${EMOJI[z.seedling.value]}</span><span>${z.seedling.value}</span><span style="font-size:0.8em">区${zi+1}</span></div>`;
             if(z.leaf)html+=`<div class="modal-card modal-card-leaf" onclick="cutCard(${zi},'leaf')"><span style="font-size:1.5em">${EMOJI[z.leaf.value]}</span><span>${z.leaf.value}</span><span style="font-size:0.8em">区${zi+1}</span></div>`;
         });
-        html+='</div><button class="btn btn-secondary" onclick="closeModal();S.P[S.cur].hand.push({type:\'tool\',value:\'剪刀\'});render()">取消</button>';
+        html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';
         modal(html);
     }
 
@@ -734,7 +730,10 @@
         if(cardType==='seedling'){zone.seedling=null;log('剪掉幼苗',S.cur);}
         else{zone.leaf=null;log('剪掉叶子',S.cur);}
         
-        // 剪刀本身已经在上一步从手牌移除了，现在放到弃牌区
+        // 从手牌移除剪刀并放入弃牌区
+        const h=S.P[S.cur].hand;
+        const idx=h.findIndex(c=>c.type==='tool'&&c.value==='剪刀');
+        if(idx>=0)h.splice(idx,1);
         S.DC.push({type:'tool',value:'剪刀'});
         
         // 标记本回合已使用道具（但可以继续使用幼苗/叶子卡）
@@ -743,9 +742,13 @@
     }
 
     function useShovel(){
-        const 可查=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified);
-        if(可查.length===0){toast('无种子可查看');return;}
-        let html='<h2>🔧 铲子</h2><p>选择区域查看/交换</p><div class="modal-cards">';
+        if(window._usedTool){toast('本回合已使用道具');return;}
+        const 可查=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified&&z.owner===S.cur);
+        if(可查.length===0){toast('无自己种子可查看');return;}
+        // 保存铲子的位置索引
+        const h=S.P[S.cur].hand;
+        window._shovelIdx=h.findIndex(c=>c.type==='tool'&&c.value==='铲子');
+        let html='<h2>🔧 铲子</h2><p>选择自己的种子区域查看/交换</p><div class="modal-cards">';
         可查.forEach(z=>{const zi=S.Z.indexOf(z);html+=`<div class="modal-card modal-card-seed" onclick="viewSeedCard(${zi})"><span>🌰</span><span>区${zi+1}</span></div>`;});
         html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';
         modal(html);
@@ -763,9 +766,15 @@
     }
 
     function cancelShovel(zi,hasNew){
+        const h=S.P[S.cur].hand;
         // 如果弹出了新种子，需要放回牌堆
         if(hasNew && window._tempSeed && window._tempSeed.newSeed){
             S.seedPool.push(window._tempSeed.newSeed);
+        }
+        // 铲子从手牌移除并放入弃牌区
+        if(window._shovelIdx>=0){
+            h.splice(window._shovelIdx,1);
+            S.DC.push({type:'tool',value:'铲子'});
         }
         closeModal();
         // 标记道具已使用，但可以继续操作
@@ -774,9 +783,15 @@
     }
 
     function doSwapSeed(zi,newName){
+        const h=S.P[S.cur].hand;
         const old=S.Z[zi].seed;
         S.Z[zi].seed={name:newName,...PLANTS[newName],revealed:false};
         if(S.seedPool.length>0)S.seedPool.push({name:old.name,...old});
+        // 铲子从手牌移除并放入弃牌区
+        if(window._shovelIdx>=0){
+            h.splice(window._shovelIdx,1);
+            S.DC.push({type:'tool',value:'铲子'});
+        }
         log('交换为'+newName,S.cur);
         window._usedTool=true;
         closeModal();
@@ -784,6 +799,7 @@
     }
 
     function useBucket(){
+        if(window._usedTool){toast('本回合已使用道具');return;}
         // 弃牌区有些卡没有type属性，需要根据value推断
         const 可回=S.DC.filter(c=>{
             if(c.type==='seedling'||c.type==='leaf') return true;
@@ -792,23 +808,34 @@
             if(['卵形','披针','心形','掌状'].includes(c.value)) return true;
             return false;
         });
-        if(可回.length===0){toast('弃牌区无可回收');S.P[S.cur].hand.push({type:'tool',value:'水桶'});render();return;}
+        if(可回.length===0){toast('弃牌区无可回收');render();return;}
+        // 保存水桶在手牌的位置索引
+        const h=S.P[S.cur].hand;
+        window._bucketIdx=h.findIndex(c=>c.type==='tool'&&c.value==='水桶');
         let html='<h2>💧 水桶</h2><p>选择要回收的卡</p><div class="modal-cards">';
         可回.forEach((c,i)=>{
             const cardType=c.type||(['单子叶','双子叶'].includes(c.value)?'seedling':'leaf');
             html+=`<div class="modal-card modal-card-${cardType}" onclick="pickFromDiscard(${i})"><span style="font-size:1.5em">${EMOJI[c.value]||'📦'}</span><span>${c.value}</span></div>`;
         });
-        html+='</div><button class="btn btn-secondary" onclick="closeModal();S.P[S.cur].hand.push({type:\'tool\',value:\'水桶\'});render()">取消</button>';
+        html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';
         modal(html);
         window._discardChoices=可回;
     }
 
     function pickFromDiscard(idx){
+        const h=S.P[S.cur].hand;
         const card=window._discardChoices[idx];
         S.DC=S.DC.filter(c=>c!==card);
         S.P[S.cur].hand.push(card);
+        // 水桶从手牌移除并放入弃牌区
+        if(window._bucketIdx>=0){
+            h.splice(window._bucketIdx,1);
+            S.DC.push({type:'tool',value:'水桶'});
+        }
         log('回收'+card.value,S.cur);toast('回收: '+card.value);
-        closeModal();finishTurn();
+        window._usedTool=true;
+        closeModal();
+        finishTurn();
     }
 
     function selectHandCard(i){
