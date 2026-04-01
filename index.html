@@ -298,8 +298,8 @@
             S.P[i]={hand:[],task:null,score:0,validations:0,isAI:i>1&&isAI};
         }
         
-        // 区域数量: 基础4个 + 每个AI增加2个
-        const zoneCount = 4 + numAI * 2;
+        // 区域数量: 基础4个 + 每个额外玩家增加2个(1个AI=2人不变,2个AI=3人+2,...)
+        const zoneCount = numAI <= 1 ? 4 : 4 + (numAI - 1) * 2;
         S.Z=Array(zoneCount).fill(null).map(()=>({seed:null,seedling:null,leaf:null,verified:null,owner:null}));
         S.DC=[];S.over=false;
         
