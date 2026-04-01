@@ -1372,10 +1372,28 @@
 
     function showMyTask(){const t=S.P[S.cur].task;toast('任务: '+t.name+' - '+t.desc);}
     function showGuide(){
-        let html='<h2>📖 植物图鉴</h2><table class="guide-table"><tr><th>组合</th><th>花卉</th><th>水果</th><th>蔬菜</th></tr>';
-        const combos=[['单子叶','卵形'],['单子叶','披针'],['单子叶','心形'],['单子叶','掌状'],['双子叶','卵形'],['双子叶','披针'],['双子叶','心形'],['双子叶','掌状']];
-        combos.forEach(([sd,lf])=>{html+=`<tr><td>${EMOJI[sd]}${sd}<br>${EMOJI[lf]}${lf}</td><td>${isValidCombo(sd,lf,'花卉')?'✅':'-'}</td><td>${isValidCombo(sd,lf,'水果')?'✅':'-'}</td><td>${isValidCombo(sd,lf,'蔬菜')?'✅':'-'}</td></tr>`;});
-        html+='</table><button class="btn btn-secondary" onclick="closeModal()">关闭</button>';modal(html);
+        // 按类型分组显示所有植物
+        const byType={'花卉':[],'水果':[],'蔬菜':[]};
+        for(let name in PLANTS)byType[PLANTS[name].type].push({name,...PLANTS[name]});
+        
+        let html='<h2>📖 植物图鉴</h2>';
+        html+='<p style="text-align:left;font-size:0.7em;max-height:70vh;overflow-y:auto">';
+        
+        // 花卉
+        html+='<strong style="color:#e91e63">🌸 花卉（单子叶+卵形/披针/心形/掌状）</strong><br>';
+        byType['花卉'].forEach(p=>{html+=`<span style="display:inline-block;margin:2px;padding:2px 6px;background:#fce4ec;border-radius:4px;font-size:0.75em">${p.name} ${EMOJI[p.seedling]}${EMOJI[p.leaf]}</span>`;});
+        html+='<br><br>';
+        
+        // 水果
+        html+='<strong style="color:#ff9800">🍎 水果（双子叶+卵形/披针/心形/掌状）</strong><br>';
+        byType['水果'].forEach(p=>{html+=`<span style="display:inline-block;margin:2px;padding:2px 6px;background:#fff3e0;border-radius:4px;font-size:0.75em">${p.name} ${EMOJI[p.seedling]}${EMOJI[p.leaf]}</span>`;});
+        html+='<br><br>';
+        
+        // 蔬菜
+        html+='<strong style="color:#4caf50">🥬 蔬菜（双子叶+卵形/披针/心形/掌状）</strong><br>';
+        byType['蔬菜'].forEach(p=>{html+=`<span style="display:inline-block;margin:2px;padding:2px 6px;background:#e8f5e9;border-radius:4px;font-size:0.75em">${p.name} ${EMOJI[p.seedling]}${EMOJI[p.leaf]}</span>`;});
+        html+='</p>';
+        html+='<button class="btn btn-secondary" onclick="closeModal()">关闭</button>';modal(html);
     }
     function showRule(){
         let html='<h2>📋 游戏规则</h2><p style="text-align:left;font-size:0.8em;max-height:60vh;overflow-y:auto">';
