@@ -47,8 +47,23 @@
         .btn-end { background: linear-gradient(135deg, #EF9A9A, #F44336); color: white; }
         .game-area { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; width: 100%; max-width: 950px; }
         .zones-container { background: rgba(139,90,43,0.7); padding: 12px; border-radius: 12px; border: 3px solid #8B5A2B; }
-        .zones-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-        .zone { width: 95px; min-height: 115px; background: linear-gradient(180deg, #8B5A2B 0%, #6B4423 100%); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 5px; position: relative; border: 2px solid #5D3A1A; cursor: pointer; transition: all 0.2s; }
+        .zones-grid { display: grid; gap: 8px; justify-content: center; }
+        /* 横屏：多列，竖屏：少列 */
+        @media (orientation: landscape) {
+            .zones-grid { grid-template-columns: repeat(auto-fit, minmax(85px, 1fr)); }
+        }
+        @media (orientation: portrait) {
+            .zones-grid { grid-template-columns: repeat(2, 1fr); }
+            .zone { min-height: 100px; }
+        }
+        /* 也根据区域数量动态调整 */
+        .zones-grid.zones-4 { grid-template-columns: repeat(2, 1fr); }
+        .zones-grid.zones-6 { grid-template-columns: repeat(3, 1fr); }
+        .zones-grid.zones-8 { grid-template-columns: repeat(4, 1fr); }
+        .zones-grid.zones-10 { grid-template-columns: repeat(5, 1fr); }
+        .zones-grid.zones-12 { grid-template-columns: repeat(4, 1fr); }
+        .zones-grid.zones-14 { grid-template-columns: repeat(7, 1fr); }
+        .zone { width: 100%; min-height: 115px; background: linear-gradient(180deg, #8B5A2B 0%, #6B4423 100%); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 5px; position: relative; border: 2px solid #5D3A1A; cursor: pointer; transition: all 0.2s; }
         .zone:hover { border-color: #81C784; }
         .zone.locked { cursor: not-allowed; opacity: 0.9; }
         .zone.locked:hover { border-color: #5D3A1A; }
@@ -141,7 +156,7 @@
         .result-winner { background: linear-gradient(135deg, #FFF9C4, #FFEE58); margin: -20px -35px; padding: 12px 35px; border-radius: 18px 18px 0 0; }
         .toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.85); color: white; padding: 15px 35px; border-radius: 12px; font-size: 1em; z-index: 200; display: none; animation: toastIn 0.3s ease; }
         @keyframes toastIn { from { opacity: 0; transform: translate(-50%,-50%) scale(0.8); } }
-        @media (max-width: 850px) { .game-area { flex-direction: column; align-items: center; } .game-log { display: none; } .zones-grid { grid-template-columns: repeat(2, 1fr); } .zone { width: 85px; } }
+        @media (max-width: 850px) { .game-area { flex-direction: column; align-items: center; } .game-log { display: none; } .zones-grid.zones-4 { grid-template-columns: repeat(2, 1fr); } .zones-grid.zones-6 { grid-template-columns: repeat(3, 1fr); } .zones-grid.zones-8 { grid-template-columns: repeat(4, 1fr); } .zones-grid.zones-10, .zones-grid.zones-12, .zones-grid.zones-14 { grid-template-columns: repeat(4, 1fr); } }
     </style>
 </head>
 <body>
@@ -362,22 +377,23 @@
     }
 
     function doInitialSeedSelect(p){
-        // 给玩家发4张种子卡选择
-        const cards=[];for(let i=0;i<4&&S.seedPool.length>0;i++)cards.push(S.seedPool.pop());
+        // 给玩家发2张种子卡选择（1张放区域，1张当手牌）
+        const cards=[];for(let i=0;i<2&&S.seedPool.length>0;i++)cards.push(S.seedPool.pop());
         
         // AI自动选择
         if(S.P[p].isAI){
             const shuffled=[...cards];shuffle(shuffled);
-            const selected=[shuffled[0],shuffled[1]];
+            const selected=shuffled[0];
             
-            // 找两个空区域
-            const ez=S.Z.map((z,i)=>z.seed===null?i:-1).filter(i=>i>=0).slice(0,2);
-            if(ez.length>=2){
-                S.Z[ez[0]].seed={...selected[0],revealed:false};
-                S.Z[ez[1]].seed={...selected[1],revealed:false};
+            // 找一个空区域
+            const ez=S.Z.map((z,i)=>z.seed===null?i:-1).filter(i=>i>=0);
+            if(ez.length>0){
+                S.Z[ez[0]].seed={...selected,revealed:false};
                 log((isAI?'AI':'P'+p)+'放置了种子卡',p);
             }
-            // 发手牌给AI
+            // 另一张给AI当手牌
+            if(shuffled[1])S.P[p].hand.push(shuffled[1]);
+            // 发4张主牌库手牌给AI
             for(let i=0;i<4;i++)S.P[p].hand.push(S.MD.pop());
             
             // 渲染一次显示当前状态
@@ -388,13 +404,54 @@
             return;
         }
         
-        window._initData={player:p,cards,selected:[]};
+        window._initData={player:p,cards,selected:-1};
         render(); // 先渲染显示其他玩家已放置的种子
         
-        let html=`<h2>🌿 ${PLAYER_NAMES[p-1]}初始种植</h2><p>你有${cards.length}张种子卡，选择2张</p><div class="modal-cards">`;
+        let html=`<h2>🌿 ${PLAYER_NAMES[p-1]}初始种植</h2><p>你有${cards.length}张种子卡，选择1张放到空区域</p><div class="modal-cards">`;
         cards.forEach((c,i)=>{html+=`<div class="modal-card modal-card-seed" id="sc${i}" onclick="toggleSeedSelect(${i})"><span class="plant-name">${c.name}</span><span class="plant-type">${c.type}</span><span class="plant-detail">${EMOJI[c.seedling]}${c.seedling}/${EMOJI[c.leaf]}${c.leaf}</span></div>`;});
-        html+=`</div><p id="shint" style="color:#4CAF50">已选 0/2</p><button class="btn btn-primary" id="sbtn" onclick="chooseZonesForSeeds()" disabled>选择放置区域</button>`;
+        html+=`</div><p id="shint" style="color:#4CAF50">已选 0/1</p><button class="btn btn-primary" id="sbtn" onclick="chooseZoneForSeed()" disabled>选择放置区域</button>`;
         modal(html);
+    }
+    
+    function toggleSeedSelect(i){
+        const d=window._initData;
+        // 取消之前的选择
+        if(d.selected>=0)document.getElementById('sc'+d.selected)?.classList.remove('selected');
+        d.selected=i;
+        document.getElementById('sc'+i).classList.add('selected');
+        document.getElementById('shint').textContent=`已选 1/1`;
+        document.getElementById('sbtn').disabled=false;
+    }
+    
+    function chooseZoneForSeed(){
+        const d=window._initData;
+        if(d.selected<0)return;
+        const ez=S.Z.map((z,i)=>z.seed===null?i:-1).filter(i=>i>=0);
+        if(ez.length===0){toast('无空区域');return;}
+        
+        // 让玩家选择区域
+        let html='<h2>选择种子卡放置的区域</h2><div class="modal-cards">';
+        ez.forEach(zi=>{html+=`<div class="modal-card modal-card-seed" onclick="placeInitialSeedCard(${zi})"><span style="font-size:1.3em">📍</span><span>区域${zi+1}</span></div>`;});
+        html+='</div>';
+        modal(html);
+    }
+    
+    function placeInitialSeedCard(zi){
+        const d=window._initData;
+        const card=d.cards[d.selected];
+        S.Z[zi].seed={...card,revealed:false};
+        
+        // 另一张种子卡给玩家当手牌
+        const otherCard=d.cards.find((c,idx)=>idx!==d.selected);
+        if(otherCard)S.P[d.player].hand.push(otherCard);
+        
+        // 发4张主牌库手牌
+        for(let i=0;i<4;i++)S.P[d.player].hand.push(S.MD.pop());
+        
+        closeModal();
+        
+        // 移到下一个玩家
+        advanceInitQueue();
     }
     
     function advanceInitQueue(){
@@ -417,51 +474,6 @@
             const nextPlayer = S.initQueue[S.initStep];
             setTimeout(()=>showMyTaskModal(nextPlayer),300);
         }
-    }
-
-    function toggleSeedSelect(i){
-        const d=window._initData,el=document.getElementById('sc'+i);
-        const idx=d.selected.indexOf(i);
-        if(idx>=0){d.selected.splice(idx,1);el.classList.remove('selected');}
-        else if(d.selected.length<2){d.selected.push(i);el.classList.add('selected');}
-        document.getElementById('shint').textContent=`已选 ${d.selected.length}/2`;
-        document.getElementById('sbtn').disabled=d.selected.length!==2;
-    }
-
-    function chooseZonesForSeeds(){
-        const d=window._initData;
-        const ez=S.Z.map((z,i)=>z.seed===null?i:-1).filter(i=>i>=0);
-        if(ez.length<2){toast('无空区域');return;}
-        window._placeData={d,ez,step:0,placements:[]};
-        let html='<h2>选择第一张卡的区域</h2><p>'+d.cards[d.selected[0]].name+' 放到：</p><div class="modal-cards">';
-        ez.forEach(zi=>{html+=`<div class="modal-card modal-card-seed" onclick="placeSeedCard(${zi})"><span style="font-size:1.3em">📍</span><span>区域${zi+1}</span></div>`;});
-        html+='</div>';
-        modal(html);
-    }
-
-    function placeSeedCard(zi){
-        const pd=window._placeData;
-        pd.placements.push(zi);
-        if(pd.step===0){
-            pd.step=1;
-            let html='<h2>选择第二张卡的区域</h2><p>'+pd.d.cards[pd.d.selected[1]].name+' 放到：</p><div class="modal-cards">';
-            pd.ez.filter(z=>z!==pd.placements[0]).forEach(z=>{html+=`<div class="modal-card modal-card-seed" onclick="placeSeedCard2(${z})"><span style="font-size:1.3em">📍</span><span>区域${z+1}</span></div>`;});
-            html+='</div>';
-            modal(html);
-        }
-    }
-
-    function placeSeedCard2(zi){
-        const pd=window._placeData;
-        const card1=pd.d.cards[pd.d.selected[0]];
-        const card2=pd.d.cards[pd.d.selected[1]];
-        S.Z[pd.placements[0]].seed={...card1,revealed:false};
-        S.Z[zi].seed={...card2,revealed:false};
-        closeModal();
-        for(let i=0;i<4;i++)S.P[pd.d.player].hand.push(S.MD.pop());
-        
-        // 移到下一个玩家
-        advanceInitQueue();
     }
 
     function renderPlayersBar(){
@@ -538,7 +550,9 @@
         });
         
         // 区域
-        const z=document.getElementById('zones-grid');z.innerHTML='';
+        const z=document.getElementById('zones-grid');
+        z.innerHTML='';
+        z.className='zones-grid zones-'+S.Z.length;
         S.Z.forEach((zone,i)=>{
             let cls='zone';if(zone.verified)cls+=' locked';
             // 高亮可选区域
