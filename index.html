@@ -503,13 +503,15 @@
         if(S.totalPlayers <= 3){
             // 小于等于3人：横向排列所有玩家
             for(let i=1;i<=S.totalPlayers;i++){
+                // 只显示自己的任务，其他玩家任务隐藏
+                const taskShow = (i===p || !S.P[i]?.isAI && i===1) ? (S.P[i]?.task?.name?.split(' ')[1]||'-') : '???';
                 const card=`<div class="player-card ${p===i?'active':''}" id="p${i}-card">
                     <span class="player-icon">${PLAYER_ICONS[i-1]}</span>
                     <div class="player-info">
                         <span class="player-name" id="p${i}-name">${S.P[i]?.isAI?'🤖 ':''}${PLAYER_NAMES[i-1]}</span>
                         <span class="player-score" id="p${i}-score">${S.P[i]?.score||0}分</span>
                     </div>
-                    <span class="player-task" id="p${i}-task">${S.P[i]?.task?.name?.split(' ')[1]||'-'}</span>
+                    <span class="player-task" id="p${i}-task">${taskShow}</span>
                 </div>`;
                 html+=card;
             }
@@ -694,8 +696,8 @@
     function cutCard(zi,type){
         const zone=S.Z[zi];
         if(!zone)return;
-        if((type==='seedling'||type==='sd')&&zone.seedling){S.DC.push(zone.seedling);zone.seedling=null;log('剪掉幼苗',S.cur);}
-        else if((type==='leaf'||type==='lf')&&zone.leaf){S.DC.push(zone.leaf);zone.leaf=null;log('剪掉叶子',S.cur);}
+        if((type==='seedling'||type==='sd')&&zone.seedling){S.DC.push({...zone.seedling,type:'seedling'});zone.seedling=null;log('剪掉幼苗',S.cur);}
+        else if((type==='leaf'||type==='lf')&&zone.leaf){S.DC.push({...zone.leaf,type:'leaf'});zone.leaf=null;log('剪掉叶子',S.cur);}
         closeModal();finishTurn();
     }
 
@@ -727,11 +729,19 @@
     }
 
     function useBucket(){
-        const 可回=S.DC.filter(c=>c.type==='seedling'||c.type==='leaf');
+        // 弃牌区有些卡没有type属性，需要根据value推断
+        const 可回=S.DC.filter(c=>{
+            if(c.type==='seedling'||c.type==='leaf') return true;
+            // 推断类型
+            if(['单子叶','双子叶'].includes(c.value)) return true;
+            if(['卵形','披针','心形','掌状'].includes(c.value)) return true;
+            return false;
+        });
         if(可回.length===0){toast('弃牌区无可回收');S.P[S.cur].hand.push({type:'tool',value:'水桶'});render();return;}
         let html='<h2>💧 水桶</h2><p>选择要回收的卡</p><div class="modal-cards">';
         可回.forEach((c,i)=>{
-            html+=`<div class="modal-card modal-card-${c.type}" onclick="pickFromDiscard(${i})"><span style="font-size:1.5em">${EMOJI[c.value]||'📦'}</span><span>${c.value}</span></div>`;
+            const cardType=c.type||(['单子叶','双子叶'].includes(c.value)?'seedling':'leaf');
+            html+=`<div class="modal-card modal-card-${cardType}" onclick="pickFromDiscard(${i})"><span style="font-size:1.5em">${EMOJI[c.value]||'📦'}</span><span>${c.value}</span></div>`;
         });
         html+='</div><button class="btn btn-secondary" onclick="closeModal();S.P[S.cur].hand.push({type:\'tool\',value:\'水桶\'});render()">取消</button>';
         modal(html);
@@ -980,6 +990,35 @@
             
             const taskTypes=S.P[aiPlayer].task.types;
             
+            // ===== 策略4：使用剪刀 - 优先剪对手干扰自己的 =====
+            const aiScissorsIdx=S.P[aiPlayer].hand.findIndex(c=>c.type==='tool'&&c.value==='剪刀');
+            if(aiScissorsIdx>=0){
+                const mySeeds=S.Z.filter(z=>z.seed&&!z.seedling&&!z.verified&&z.owner===aiPlayer);
+                const opponentSeedlings=S.Z.filter(z=>z.seedling&&!z.verified&&z.owner&&z.owner!==aiPlayer);
+                // 如果对手有幼苗且自己有种子待种，优先剪
+                if(opponentSeedlings.length>0&&mySeeds.length>0){
+                    const z=opponentSeedlings[Math.floor(Math.random()*opponentSeedlings.length)];
+                    const zi=S.Z.indexOf(z);
+                    S.DC.push({...z.seedling,type:'seedling'});
+                    z.seedling=null;
+                    S.P[aiPlayer].hand.splice(aiScissorsIdx,1);
+                    log(PLAYER_NAMES[aiPlayer-1]+'用剪刀剪掉对手区域'+(zi+1)+'的幼苗',aiPlayer);
+                    finishTurn();
+                    return;
+                }
+                // 否则剪对手任意幼苗
+                if(opponentSeedlings.length>0){
+                    const z=opponentSeedlings[Math.floor(Math.random()*opponentSeedlings.length)];
+                    const zi=S.Z.indexOf(z);
+                    S.DC.push({...z.seedling,type:'seedling'});
+                    z.seedling=null;
+                    S.P[aiPlayer].hand.splice(aiScissorsIdx,1);
+                    log(PLAYER_NAMES[aiPlayer-1]+'剪掉对手区域'+(zi+1)+'的幼苗',aiPlayer);
+                    finishTurn();
+                    return;
+                }
+            }
+            
             // ===== 策略5：种幼苗 =====
             const needSeedling=S.Z.filter(z=>z.seed&&!z.seedling&&!z.verified);
             const 可种幼苗=S.P[aiPlayer].hand.filter(c=>c.type==='seedling');
@@ -1072,7 +1111,13 @@
             // ===== 策略8：使用水桶 - 回收弃牌 =====
             const bucketIdx=S.P[aiPlayer].hand.findIndex(c=>c.type==='tool'&&c.value==='水桶');
             if(bucketIdx>=0&&S.DC.length>0){
-                const useful=S.DC.filter(c=>c.type==='seedling'||c.type==='leaf');
+                // 弃牌区有些卡没有type属性，需要根据value推断
+                const useful=S.DC.filter(c=>{
+                    if(c.type==='seedling'||c.type==='leaf') return true;
+                    if(['单子叶','双子叶'].includes(c.value)) return true;
+                    if(['卵形','披针','心形','掌状'].includes(c.value)) return true;
+                    return false;
+                });
                 if(useful.length>0){
                     const card=useful[Math.floor(Math.random()*useful.length)];
                     S.DC=S.DC.filter(c=>c!==card);
@@ -1106,12 +1151,33 @@
             // ===== 策略10：检查手牌是否超过5张，弃牌 =====
             if(S.P[aiPlayer].hand.length > 5){
                 const excess = S.P[aiPlayer].hand.length - 5;
-                let discarded = 0;
-                for(let i=S.P[aiPlayer].hand.length-1; i>=0 && discarded<excess; i--){
-                    const c = S.P[aiPlayer].hand[i];
-                    if(c.type==='tool') continue;
-                    S.DC.push(c);
-                    S.P[aiPlayer].hand.splice(i,1);
+                const h = S.P[aiPlayer].hand;
+                // 优先弃掉非任务相关的牌
+                const taskTypes = S.P[aiPlayer].task.types;
+                // 给每张手牌打分：工具>任务相关>非任务相关
+                const scored = h.map((c,idx)=>{
+                    if(c.type==='tool') return {idx,score:100,card:c}; // 保留工具
+                    // 检查是否对任务有用
+                    let useful=false;
+                    if(c.type==='seedling'){
+                        // 检查是否有需要这个幼苗的种子
+                        const matchingZones=S.Z.filter(z=>z.seed&&!z.seedling&&z.seed.type&&taskTypes.includes(z.seed.type)&&z.seed.seedling===c.value);
+                        useful=matchingZones.length>0;
+                    } else if(c.type==='leaf'){
+                        // 检查是否有需要这个叶子的种子
+                        const matchingZones=S.Z.filter(z=>z.seed&&z.seedling&&!z.leaf&&z.seed.type&&taskTypes.includes(z.seed.type)&&z.seed.leaf===c.value);
+                        useful=matchingZones.length>0;
+                    }
+                    return {idx,score:useful?1:0,card:c};
+                });
+                // 按分数升序排列，优先弃分数低的
+                scored.sort((a,b)=>a.score-b.score);
+                let discarded=0;
+                for(let i=0;i<scored.length&&discarded<excess;i++){
+                    const c=scored[i];
+                    if(c.card.type==='tool') continue; // 不弃工具
+                    S.DC.push(c.card);
+                    h.splice(h.indexOf(c.card),1);
                     discarded++;
                 }
                 log(PLAYER_NAMES[aiPlayer-1]+'弃掉'+discarded+'张',aiPlayer);
@@ -1184,9 +1250,11 @@
             const isWin=winners.includes(p);
             const bgColors=['#e8f5e9','#e3f2fd','#fce4ec','#fff3e0','#e8eaf6','#f3e5f5'];
             const textColors=['#2E7D32','#1976D2','#c2185b','#e65100','#303f9f','#7b1fa2'];
+            // 只显示玩家自己的任务，其他玩家任务隐藏
+            const taskShow = (!S.P[p].isAI) ? S.P[p].task.name : '🤖 AI';
             html+=`<div style="flex:1;min-width:140px;background:${bgColors[p-1]};border-radius:12px;padding:12px;text-align:center;">
                 <div style="font-weight:bold;color:${textColors[p-1]};margin-bottom:4px;">${PLAYER_ICONS[p-1]} ${S.P[p].isAI?'🤖 ':''}${PLAYER_NAMES[p-1]}</div>
-                <div style="font-size:0.75em;color:#666;margin-bottom:4px;">${S.P[p].task.name}</div>
+                <div style="font-size:0.75em;color:#666;margin-bottom:4px;">${taskShow}</div>
                 <div style="font-size:1.5em;font-weight:bold;color:${textColors[p-1]};">${S.P[p].score}分</div>
                 ${isWin&&winners.length===1?'<div>👑</div>':isWin?'<div style="font-size:0.8em">👑并列</div>':''}
             </div>`;
