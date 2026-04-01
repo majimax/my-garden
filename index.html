@@ -154,14 +154,16 @@
     <div id="mode-screen" class="screen">
         <h2 style="color:white;margin-bottom:25px;">选择游戏模式</h2>
         <button class="btn btn-primary" onclick="startGame(2)">👥 双人对战</button>
-        <button class="btn btn-primary" onclick="startGame('ai')">🤖 AI对战</button>
+        <button class="btn btn-primary" onclick="startGame(1)">🤖 +1 AI</button>
+        <button class="btn btn-primary" onclick="startGame(2)">🤖 +2 AI</button>
+        <button class="btn btn-primary" onclick="startGame(3)">🤖 +3 AI</button>
+        <button class="btn btn-primary" onclick="startGame(4)">🤖 +4 AI</button>
+        <button class="btn btn-primary" onclick="startGame(5)">🤖 +5 AI</button>
         <br><button class="btn btn-secondary" onclick="show('start-screen')">返回</button>
     </div>
     <div id="game-screen" class="screen">
-        <div class="top-bar">
-            <div class="player-card" id="p1-card"><span class="player-icon">🌿</span><div class="player-info"><span class="player-name">玩家1</span><span class="player-score" id="p1-score">0分</span></div><span class="player-task" id="p1-task">-</span></div>
-            <div class="turn-info"><div class="turn-number" id="turn-num">回合 1</div><div class="phase-hint" id="phase-hint">等待中...</div></div>
-            <div class="player-card" id="p2-card"><span class="player-icon">🌵</span><div class="player-info"><span class="player-name" id="p2-name">玩家2</span><span class="player-score" id="p2-score">0分</span></div><span class="player-task" id="p2-task">-</span></div>
+        <div class="top-bar" id="players-bar">
+            <!-- 动态生成 -->
         </div>
         <div class="task-bar" id="task-bar" style="display:none;">
             <span class="label">🎯 我的任务:</span>
@@ -190,7 +192,7 @@
             <div class="hand-cards" id="hand-cards"></div>
         </div>
         <div class="task-btn" onclick="showMyTask()"><h4>📋 任务</h4><span id="my-task">查看</span></div>
-        <div style="position:fixed;top:8px;left:8px;z-index:50"><button class="btn" style="padding:8px 15px;font-size:0.8em;background:rgba(255,255,255,0.9);border-radius:20px;cursor:pointer" onclick="if(confirm('确定重新开始?'))startGame(isAI?'ai':2)">🔄 重新开始</button></div>
+        <div style="position:fixed;top:8px;left:8px;z-index:50"><button class="btn" style="padding:8px 15px;font-size:0.8em;background:rgba(255,255,255,0.9);border-radius:20px;cursor:pointer" onclick="if(confirm('确定重新开始?'))startGame(S.numAI||0)">🔄 重新开始</button></div>
         <div class="guide-btn" onclick="showGuide()">📖 图鉴</div>
         <div class="game-log" id="game-log"></div>
     </div>
@@ -205,6 +207,10 @@
 
     <script>
     const EMOJI = {'单子叶':'🌾','双子叶':'🌱','卵形':'🥚','披针':'🪡','心形':'❤️','掌状':'🖐️','剪刀':'✂️','铲子':'🔧','水桶':'💧'};
+    
+    // 玩家配置
+    const PLAYER_ICONS = ['🌿','🌵','🌸','🍎','🥬','🌻'];
+    const PLAYER_NAMES = ['玩家1','玩家2','玩家3','玩家4','玩家5','玩家6'];
     
     // 完整植物数据
     const PLANTS = {
@@ -260,9 +266,10 @@
     function modal(html){document.getElementById('modal-content').innerHTML=html;document.getElementById('modal').classList.add('active');}
     function closeModal(){document.getElementById('modal').classList.remove('active');}
 
-    function startGame(mode){
-        isAI=mode==='ai';
-        document.getElementById('p2-name').textContent=isAI?'🤖 AI':'玩家2';
+    function startGame(numAI){
+        // numAI: 0=双人, 1-5=AI数量
+        isAI = numAI > 0;
+        const totalPlayers = isAI ? numAI + 1 : 2;
         
         // 创建种子卡池
         const seedPool=[];
@@ -283,79 +290,130 @@
         for(let t of['剪刀','铲子','水桶'])for(let i=0;i<4;i++)S.MD.push({type:'tool',value:t});
         shuffle(S.MD);
         
-        S.P={1:{hand:[],task:null,score:0,validations:0},2:{hand:[],task:null,score:0,validations:0}};
-        S.Z=Array(4).fill(null).map(()=>({seed:null,seedling:null,leaf:null,verified:null,owner:null}));
+        // 初始化玩家
+        S.P={};
+        S.numAI = numAI;
+        S.totalPlayers = totalPlayers;
+        for(let i=1;i<=totalPlayers;i++){
+            S.P[i]={hand:[],task:null,score:0,validations:0,isAI:i>1&&isAI};
+        }
+        
+        // 区域数量: 基础4个 + 每个AI增加2个
+        const zoneCount = 4 + numAI * 2;
+        S.Z=Array(zoneCount).fill(null).map(()=>({seed:null,seedling:null,leaf:null,verified:null,owner:null}));
         S.DC=[];S.over=false;
         
         show('game-screen');
-        document.getElementById('game-log').innerHTML='<div class="log-entry">📍 游戏开始</div>';
+        document.getElementById('game-log').innerHTML='<div class="log-entry">📍 游戏开始 ('+totalPlayers+'人局)</div>';
         
         // 随机分配任务
         const taskPool=[...TASKS];shuffle(taskPool);
-        S.P[1].task=taskPool[0];
-        S.P[2].task=taskPool[1];
+        for(let i=1;i<=totalPlayers;i++){
+            S.P[i].task=taskPool[(i-1)%taskPool.length];
+        }
         
-        // 先展示任务
-        showMyTaskModal(1);
+        // 随机玩家顺序
+        S.playerOrder = [];
+        for(let i=1;i<=totalPlayers;i++)S.playerOrder.push(i);
+        shuffle(S.playerOrder);
+        S.turnOrderIndex = 0;
+        S.cur = S.playerOrder[0];
+        S.turn = 1;
+        
+        // 初始种子选择顺序
+        S.initQueue = [...S.playerOrder];
+        S.initStep = 0; // 0=选择种子, 1=选择区域
+        
+        // 先展示第一个玩家的任务
+        showMyTaskModal(S.initQueue[0]);
     }
 
     function showMyTaskModal(p){
-        const task=S.P[p].task;
-        let html=`<h2>🎯 你的任务</h2><p style="font-size:1.2em;color:#2E7D32;font-weight:bold">${task.name}</p><p>${task.desc}</p>`;
-        html+='<button class="btn btn-primary" onclick="closeModalAndSelectSeeds()">知道了，选择种子卡</button>';
+        const isHuman = !S.P[p].isAI;
+        let html=`<h2>🎯 ${PLAYER_NAMES[p-1]}的任务</h2>`;
+        if(isHuman){
+            const task=S.P[p].task;
+            html+=`<p style="font-size:1.2em;color:#2E7D32;font-weight:bold">${task.name}</p><p>${task.desc}</p>`;
+            html+='<button class="btn btn-primary" onclick="closeModalAndSelectSeeds()">知道了，选择种子卡</button>';
+        }else{
+            html+='<p>🤖 AI正在思考...</p>';
+        }
         modal(html);
         window._taskPlayer=p;
+        
+        // 如果是AI，等待后自动跳过
+        if(!isHuman){
+            setTimeout(()=>{
+                if(document.getElementById('modal').classList.contains('active')){
+                    closeModal();
+                    doInitialSeedSelect(p);
+                }
+            },800);
+        }
     }
 
     function closeModalAndSelectSeeds(){
         closeModal();
-        if(window._taskPlayer===1 && isAI){
-            // AI模式：玩家1看完任务后，直接进入玩家1初始种子选择
-            // AI的任务不需要展示（对玩家不可见）
-            doInitialSeedSelect(1);
-        }else if(window._taskPlayer===1){
-            // P1看完自己的任务，开始选种子
-            doInitialSeedSelect(1);
-        }else{
-            // P2看完自己的任务，开始选种子
-            doInitialSeedSelect(2);
-        }
+        const p = window._taskPlayer;
+        doInitialSeedSelect(p);
     }
-
-    function showTaskSelection(p){}
 
     function doInitialSeedSelect(p){
         // 给玩家发4张种子卡选择
         const cards=[];for(let i=0;i<4&&S.seedPool.length>0;i++)cards.push(S.seedPool.pop());
         
-        if(p===2 && isAI){
-            // AI自动选择并放置
+        // AI自动选择
+        if(S.P[p].isAI){
             const shuffled=[...cards];shuffle(shuffled);
             const selected=[shuffled[0],shuffled[1]];
-            const ez=[0,1]; // AI放前两个空区域
-            S.Z[ez[0]].seed={...selected[0],revealed:false};
-            S.Z[ez[1]].seed={...selected[1],revealed:false};
-            log('AI选择了种子卡',2);
+            
+            // 找两个空区域
+            const ez=S.Z.map((z,i)=>z.seed===null?i:-1).filter(i=>i>=0).slice(0,2);
+            if(ez.length>=2){
+                S.Z[ez[0]].seed={...selected[0],revealed:false};
+                S.Z[ez[1]].seed={...selected[1],revealed:false};
+                log((isAI?'AI':'P'+p)+'放置了种子卡',p);
+            }
             // 发手牌给AI
-            for(let i=0;i<4;i++)S.P[2].hand.push(S.MD.pop());
-            // 设置游戏状态并渲染
-            S.cur=1; // 设置当前玩家
-            S.turn=1; // 设置回合
-            render(); // 渲染AI的种子
-            // 继续玩家1的初始种植
-            doInitialSeedSelect(1);
+            for(let i=0;i<4;i++)S.P[p].hand.push(S.MD.pop());
+            
+            // 渲染一次显示当前状态
+            render();
+            
+            // 移到下一个玩家
+            advanceInitQueue();
             return;
         }
         
         window._initData={player:p,cards,selected:[]};
-        // 如果S.cur已设置（AI已放置种子），先渲染一次显示AI的种子
-        if(S.cur && p===1){
-            render();
-        }
-        let html=`<h2>${p===1?'🌿':'🌵'}玩家${p}初始种植</h2><p>你有${cards.length}张种子卡，选择2张</p><div class="modal-cards">`;
+        render(); // 先渲染显示其他玩家已放置的种子
+        
+        let html=`<h2>🌿 ${PLAYER_NAMES[p-1]}初始种植</h2><p>你有${cards.length}张种子卡，选择2张</p><div class="modal-cards">`;
         cards.forEach((c,i)=>{html+=`<div class="modal-card modal-card-seed" id="sc${i}" onclick="toggleSeedSelect(${i})"><span class="plant-name">${c.name}</span><span class="plant-type">${c.type}</span><span class="plant-detail">${EMOJI[c.seedling]}${c.seedling}/${EMOJI[c.leaf]}${c.leaf}</span></div>`;});
         html+=`</div><p id="shint" style="color:#4CAF50">已选 0/2</p><button class="btn btn-primary" id="sbtn" onclick="chooseZonesForSeeds()" disabled>选择放置区域</button>`;
         modal(html);
+    }
+    
+    function advanceInitQueue(){
+        S.initStep++;
+        if(S.initStep >= S.initQueue.length){
+            // 所有玩家都完成了初始种植，游戏开始
+            S.initDone = true;
+            log('游戏开始!',S.cur);
+            closeModal();
+            render();
+            updateHint();
+            updateTaskBar();
+            // 如果是AI先手，开始AI回合
+            if(S.P[S.cur].isAI){
+                isAITurn = true;
+                setTimeout(()=>doAITurn(),500);
+            }
+        }else{
+            // 下一个玩家
+            const nextPlayer = S.initQueue[S.initStep];
+            setTimeout(()=>showMyTaskModal(nextPlayer),300);
+        }
     }
 
     function toggleSeedSelect(i){
@@ -399,53 +457,73 @@
         closeModal();
         for(let i=0;i<4;i++)S.P[pd.d.player].hand.push(S.MD.pop());
         
-        if(pd.d.player===1){
-            // 玩家1完成初始种子选择，检查是否需要处理玩家2
-            if(isAI){
-                // AI自动放置
-                const aiCards=[];
-                for(let i=0;i<4&&S.seedPool.length>0;i++)aiCards.push(S.seedPool.pop());
-                const shuffled=[...aiCards];shuffle(shuffled);
-                const selected=[shuffled[0],shuffled[1]];
-                const ez=S.Z.map((z,i)=>z.seed===null?i:-1).filter(i=>i>=0);
-                S.Z[ez[0]].seed={...selected[0],revealed:false};
-                S.Z[ez[1]].seed={...selected[1],revealed:false};
-                log('AI放置了种子卡',2);
-                for(let i=0;i<4;i++)S.P[2].hand.push(S.MD.pop());
-                // AI放置完毕，直接开始游戏
-                closeModal(); // 关闭选择区域的模态框
-                S.cur=1;S.turn=1;
-                log('游戏开始',1);
-                render();updateHint();updateTaskBar();
-                return;
-            }else{
-                // 双人模式：先展示玩家2的任务
-                closeModal();
-                setTimeout(()=>{showMyTaskModal(2);},200);
-                return;
-            }
-        }
-        // 玩家2完成（或双人模式玩家2看完任务后选择种子）
-        // 游戏开始
-        S.cur=1;S.turn=1;
-        log('游戏开始',1);
-        render();updateHint();updateTaskBar();
+        // 移到下一个玩家
+        advanceInitQueue();
     }
 
-    function render(){
+    function renderPlayersBar(){
+        const bar=document.getElementById('players-bar');
         const p=S.cur;
-        document.getElementById('p1-card').classList.toggle('active',p===1);
-        document.getElementById('p2-card').classList.toggle('active',p===2);
-        document.getElementById('p1-score').textContent=S.P[1].score+'分';
-        document.getElementById('p2-score').textContent=S.P[2].score+'分';
-        document.getElementById('p1-task').textContent=S.P[1].task?.name.split(' ')[1]||'-';
-        document.getElementById('p2-task').textContent=S.P[2].task?.name.split(' ')[1]||'-';
-        document.getElementById('turn-num').textContent=`回合 ${S.turn}`;
-        document.getElementById('hand-player').textContent=p===1?'🌿 玩家1':'🌵 '+(isAI?'AI':'玩家2');
+        const turnInfo=`<div class="turn-info"><div class="turn-number" id="turn-num">回合 ${S.turn||1}</div><div class="phase-hint" id="phase-hint">等待中...</div></div>`;
+        
+        let html='';
+        // 显示当前回合的玩家顺序
+        const orderHtml = S.playerOrder ? S.playerOrder.map((pid,idx)=>{
+            const isActive = pid === p;
+            const marker = isActive ? '👉' : (idx < S.turnOrderIndex ? '✅' : '');
+            return `<span style="font-size:0.75em;opacity:${isActive?'1':'0.6'}">${PLAYER_ICONS[pid-1]}${PLAYER_NAMES[pid-1]}${marker}</span>`;
+        }).join(' → ') : '';
+        
+        // 根据玩家数量决定布局
+        if(S.totalPlayers <= 3){
+            // 小于等于3人：横向排列所有玩家
+            for(let i=1;i<=S.totalPlayers;i++){
+                const card=`<div class="player-card ${p===i?'active':''}" id="p${i}-card">
+                    <span class="player-icon">${PLAYER_ICONS[i-1]}</span>
+                    <div class="player-info">
+                        <span class="player-name" id="p${i}-name">${S.P[i]?.isAI?'🤖 ':''}${PLAYER_NAMES[i-1]}</span>
+                        <span class="player-score" id="p${i}-score">${S.P[i]?.score||0}分</span>
+                    </div>
+                    <span class="player-task" id="p${i}-task">${S.P[i]?.task?.name?.split(' ')[1]||'-'}</span>
+                </div>`;
+                html+=card;
+            }
+            html+=turnInfo;
+        } else {
+            // 4人以上：只显示当前玩家和回合信息，挤在中间
+            const currentCard=`<div class="player-card active" id="p${p}-card">
+                <span class="player-icon">${PLAYER_ICONS[p-1]}</span>
+                <div class="player-info">
+                    <span class="player-name">${S.P[p]?.isAI?'🤖 ':''}${PLAYER_NAMES[p-1]}</span>
+                    <span class="player-score" id="p${p}-score">${S.P[p]?.score||0}分</span>
+                </div>
+                <span class="player-task" id="p${p}-task">${S.P[p]?.task?.name?.split(' ')[1]||'-'}</span>
+            </div>`;
+            html=currentCard+turnInfo;
+            
+            // 右侧显示顺序小圆点
+            const dots=S.playerOrder.map((pid,idx)=>{
+                const isActive = pid === p;
+                const done = idx < S.turnOrderIndex;
+                return `<span style="font-size:1em;opacity:${done?'0.3':isActive?'1':'0.5'}">${PLAYER_ICONS[pid-1]}</span>`;
+            }).join('');
+            html+=`<div style="color:white;font-size:0.7em;text-align:right;">${dots}<br><span style="font-size:0.65em;opacity:0.7">顺序</span></div>`;
+        }
+        
+        bar.innerHTML=html;
+    }
+    
+    function render(){
+        if(!S.P || !S.Z) return;
+        
+        renderPlayersBar();
+        
+        const p=S.cur;
+        document.getElementById('hand-player').textContent=`${PLAYER_ICONS[p-1]} ${PLAYER_NAMES[p-1]}${S.P[p]?.isAI?' (AI)':''}`;
         document.getElementById('hand-count').textContent=S.P[p].hand.length+'张';
         document.getElementById('seed-count').textContent=S.seedPool.length;
         document.getElementById('main-count').textContent=S.MD.length;
-        document.getElementById('my-task').textContent=S.P[p].task?.name.split(' ')[1]||'-';
+        document.getElementById('my-task').textContent=S.P[p].task?.name||'-';
         
         // 手牌
         const h=document.getElementById('hand-cards');h.innerHTML='';
@@ -467,7 +545,7 @@
                 if(currentAction==='verify'&&zone.seed&&zone.seedling&&zone.leaf)cls+=' target';
             }
             let html=`<div class="${cls}" onclick="clickZone(${i})"><span class="zone-num">${i+1}</span>`;
-            if(zone.owner)html+=`<span class="zone-owner">${zone.owner===1?'🌿':'🌵'}</span>`;
+            if(zone.owner)html+=`<span class="zone-owner">${PLAYER_ICONS[zone.owner-1]}</span>`;
             if(zone.seed){
                 const rev=zone.seed.revealed||zone.verified;
                 const flipping=zone.flipping?' flipping':'';
@@ -536,10 +614,9 @@
         window._selectedCard=-1;
         render();
         updateHint();
-        // AI模式：执行完操作后自动结束回合，切换到玩家1
-        if(isAI && isAITurn && S.cur===2){
+        // AI模式：执行完操作后自动结束回合
+        if(isAITurn && S.P[S.cur].isAI){
             setTimeout(()=>{
-                // 模拟点击结束按钮
                 doEndTurn();
             },300);
         }
@@ -771,40 +848,49 @@
     function doEndTurn(){
         if(S.over)return;
         
-        if(isAI&&S.cur===1){
-            // 玩家1结束，AI回合
-            S.cur=2;
-            window._drew=false;
-            window._acted=false;
-            currentAction='';
-            window._selectedCard=-1;
-            isAITurn=true;
-            log('AI回合开始',2);
-            render();
-            updateHint();
-            // AI回合开始
-            setTimeout(()=>doAITurn(),500);
-            return;
+        // 多人轮转：按playerOrder顺序切换
+        S.turnOrderIndex++;
+        
+        // 如果转完一圈，增加回合数
+        if(S.turnOrderIndex >= S.playerOrder.length){
+            S.turnOrderIndex = 0;
+            S.turn++;
+            log('=== 回合 '+S.turn+' ===',S.cur);
         }
         
-        // 双人模式切换玩家
-        S.cur=S.cur===1?2:1;
-        if(S.cur===1){
-            S.turn++;log('回合'+S.turn,1);
-            isAITurn=false; // 切换回玩家1，重置AI状态
+        S.cur = S.playerOrder[S.turnOrderIndex];
+        window._drew=false;
+        window._acted=false;
+        currentAction='';
+        window._selectedCard=-1;
+        window._targetZone=-1;
+        
+        // 检查是否是AI回合
+        if(S.P[S.cur].isAI){
+            isAITurn=true;
+            log(PLAYER_NAMES[S.cur-1]+'(AI)回合',S.cur);
+            render();
+            updateHint();
+            updateTaskBar();
+            setTimeout(()=>doAITurn(),500);
+        }else{
+            isAITurn=false;
+            log(PLAYER_NAMES[S.cur-1]+'回合',S.cur);
+            render();
+            updateHint();
+            updateTaskBar();
         }
-        window._drew=false;window._acted=false;currentAction='';window._selectedCard=-1;window._targetZone=-1;
-        log('P'+S.cur+'回合',S.cur);render();updateHint();updateTaskBar();
     }
 
     function doAITurn(){
         if(S.over||!isAITurn)return;
-        log('AI回合',2);
+        const aiPlayer = S.cur; // 当前AI玩家
+        log(PLAYER_NAMES[aiPlayer-1]+'(AI)行动中',aiPlayer);
         
         // AI回合：抽牌
         if(S.MD.length>0){
-            S.P[2].hand.push(S.MD.pop());
-            log('AI抽牌',2);
+            S.P[aiPlayer].hand.push(S.MD.pop());
+            log('AI抽牌',aiPlayer);
         }
         window._drew=true;
         render();
@@ -813,8 +899,8 @@
         setTimeout(()=>{
             if(S.over||!isAITurn)return;
             
-            const taskType=S.P[2].task.type; // 花卉/水果/蔬菜/混合
-            const taskScore=S.P[2].task.score;
+            const taskType=S.P[aiPlayer].task.type; // 花卉/水果/蔬菜/混合
+            const taskScore=S.P[aiPlayer].task.score;
             
             // ===== 策略1：验证所有可验证区域（优先自己得分，其次阻止对手得分）=====
             const 可验=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified);
@@ -823,14 +909,12 @@
                 const 会失败=可验.filter(z=>!isValidCombo(z.seedling.value,z.leaf.value,z.seed));
                 
                 const AI任务成功=会成功.filter(z=>taskType==='混合'||z.seed.type===taskType);
-                const P1任务成功=会成功.filter(z=>taskType!=='混合'&&z.seed.type!==taskType);
-                const 其他成功=会成功.filter(z=>taskType!=='混合'&&z.seed.type===taskType);
+                const 对手任务成功=会成功.filter(z=>taskType!=='混合'&&z.seed.type!==taskType&&z.owner&&z.owner!==aiPlayer);
                 
                 let 目标区=null,理由='';
                 // 优先自己任务，随机选一个
                 if(AI任务成功.length>0){目标区=AI任务成功[Math.floor(Math.random()*AI任务成功.length)];理由='任务匹配';}
-                else if(P1任务成功.length>0){目标区=P1任务成功[Math.floor(Math.random()*P1任务成功.length)];理由='阻止对手';}
-                else if(其他成功.length>0){目标区=其他成功[Math.floor(Math.random()*其他成功.length)];理由='得分';}
+                else if(对手任务成功.length>0){目标区=对手任务成功[Math.floor(Math.random()*对手任务成功.length)];理由='阻止对手';}
                 // 未知情况：有30%概率随机验证一个会失败的区域来干扰对手
                 else if(会失败.length>0){
                     if(Math.random()<0.3){
@@ -840,7 +924,7 @@
                 
                 if(目标区){
                     const zi=S.Z.indexOf(目标区);
-                    log('AI验证区域'+(zi+1)+'('+理由+')',2);
+                    log(PLAYER_NAMES[aiPlayer-1]+'验证区域'+(zi+1)+'('+理由+')',aiPlayer);
                     doVerifyZone(zi);
                     return;
                 }
@@ -848,7 +932,7 @@
             
             // ===== 策略2：种幼苗，优先匹配任务类型 =====
             const needSeedling=S.Z.filter(z=>z.seed&&!z.seedling&&!z.verified);
-            const 可种幼苗=S.P[2].hand.filter(c=>c.type==='seedling');
+            const 可种幼苗=S.P[aiPlayer].hand.filter(c=>c.type==='seedling');
             if(needSeedling.length>0&&可种幼苗.length>0){
                 // 找所有完美匹配（种子类型+幼苗值）
                 const 完美匹配=[];
@@ -862,10 +946,10 @@
                 if(完美匹配.length>0){
                     const pick=完美匹配[Math.floor(Math.random()*完美匹配.length)];
                     const zi=S.Z.indexOf(pick.zone);
-                    const cIdx=S.P[2].hand.indexOf(pick.card);
-                    S.P[2].hand.splice(cIdx,1);
+                    const cIdx=S.P[aiPlayer].hand.indexOf(pick.card);
+                    S.P[aiPlayer].hand.splice(cIdx,1);
                     S.Z[zi].seedling={value:pick.card.value};
-                    log('AI种'+pick.card.value+'到区'+(zi+1)+'(任务匹配)',2);
+                    log(PLAYER_NAMES[aiPlayer-1]+'种'+pick.card.value+'到区'+(zi+1)+'(任务匹配)',aiPlayer);
                     finishTurn();
                     return;
                 }
@@ -874,10 +958,10 @@
                     const z=needSeedling[Math.floor(Math.random()*needSeedling.length)];
                     const c=可种幼苗[Math.floor(Math.random()*可种幼苗.length)];
                     const zi=S.Z.indexOf(z);
-                    const cIdx=S.P[2].hand.indexOf(c);
-                    S.P[2].hand.splice(cIdx,1);
+                    const cIdx=S.P[aiPlayer].hand.indexOf(c);
+                    S.P[aiPlayer].hand.splice(cIdx,1);
                     S.Z[zi].seedling={value:c.value};
-                    log('AI种'+c.value+'到区'+(zi+1)+'(随机)',2);
+                    log(PLAYER_NAMES[aiPlayer-1]+'种'+c.value+'到区'+(zi+1)+'(随机)',aiPlayer);
                     finishTurn();
                     return;
                 }
@@ -885,7 +969,7 @@
             
             // ===== 策略3：盖叶子，优先匹配任务类型 =====
             const needLeaf=S.Z.filter(z=>z.seed&&z.seedling&&!z.leaf&&!z.verified);
-            const 可用叶子=S.P[2].hand.filter(c=>c.type==='leaf');
+            const 可用叶子=S.P[aiPlayer].hand.filter(c=>c.type==='leaf');
             if(needLeaf.length>0&&可用叶子.length>0){
                 // 找所有完美匹配
                 const 完美匹配=[];
@@ -899,10 +983,10 @@
                 if(完美匹配.length>0){
                     const pick=完美匹配[Math.floor(Math.random()*完美匹配.length)];
                     const zi=S.Z.indexOf(pick.zone);
-                    const cIdx=S.P[2].hand.indexOf(pick.card);
-                    S.P[2].hand.splice(cIdx,1);
+                    const cIdx=S.P[aiPlayer].hand.indexOf(pick.card);
+                    S.P[aiPlayer].hand.splice(cIdx,1);
                     S.Z[zi].leaf={value:pick.card.value};
-                    log('AI放'+pick.card.value+'叶子到区'+(zi+1)+'(任务匹配)',2);
+                    log(PLAYER_NAMES[aiPlayer-1]+'放'+pick.card.value+'叶子到区'+(zi+1)+'(任务匹配)',aiPlayer);
                     finishTurn();
                     return;
                 }
@@ -911,19 +995,19 @@
                     const z=needLeaf[Math.floor(Math.random()*needLeaf.length)];
                     const c=可用叶子[Math.floor(Math.random()*可用叶子.length)];
                     const zi=S.Z.indexOf(z);
-                    const cIdx=S.P[2].hand.indexOf(c);
-                    S.P[2].hand.splice(cIdx,1);
+                    const cIdx=S.P[aiPlayer].hand.indexOf(c);
+                    S.P[aiPlayer].hand.splice(cIdx,1);
                     S.Z[zi].leaf={value:c.value};
-                    log('AI放'+c.value+'叶子到区'+(zi+1)+'(随机)',2);
+                    log(PLAYER_NAMES[aiPlayer-1]+'放'+c.value+'叶子到区'+(zi+1)+'(随机)',aiPlayer);
                     finishTurn();
                     return;
                 }
             }
             
             // ===== 策略4：使用道具（随机性决策）=====
-            const hasTool=S.P[2].hand.findIndex(c=>c.type==='tool');
+            const hasTool=S.P[aiPlayer].hand.findIndex(c=>c.type==='tool');
             if(hasTool>=0&&Math.random()<0.7){ // 70%概率使用道具
-                const tool=S.P[2].hand[hasTool];
+                const tool=S.P[aiPlayer].hand[hasTool];
                 
                 // 水桶：回收弃牌堆中对自己有用的卡
                 if(tool.value==='水桶'&&S.DC.length>0){
@@ -931,9 +1015,9 @@
                     if(useful.length>0){
                         const card=useful[Math.floor(Math.random()*useful.length)];
                         S.DC=S.DC.filter(c=>c!==card);
-                        S.P[2].hand.push(card);
-                        S.P[2].hand.splice(hasTool,1);
-                        log('AI回收'+card.value,2);
+                        S.P[aiPlayer].hand.push(card);
+                        S.P[aiPlayer].hand.splice(hasTool,1);
+                        log(PLAYER_NAMES[aiPlayer-1]+'回收'+card.value,aiPlayer);
                         finishTurn();
                         return;
                     }
@@ -941,15 +1025,15 @@
                 
                 // 剪刀：优先剪对手，随机选一个目标
                 if(tool.value==='剪刀'){
-                    const opponentZones=S.Z.filter(z=>z.seedling&&!z.verified&&z.owner===1);
-                    const myZones=S.Z.filter(z=>z.seedling&&!z.verified&&z.owner===2);
+                    const opponentZones=S.Z.filter(z=>z.seedling&&!z.verified&&z.owner&&z.owner!==aiPlayer);
+                    const myZones=S.Z.filter(z=>z.seedling&&!z.verified&&z.owner===aiPlayer);
                     if(opponentZones.length>0){
                         const z=opponentZones[Math.floor(Math.random()*opponentZones.length)];
                         const zi=S.Z.indexOf(z);
                         S.DC.push(z.seedling);
                         z.seedling=null;
-                        S.P[2].hand.splice(hasTool,1);
-                        log('AI剪掉对手区域'+(zi+1)+'的幼苗',2);
+                        S.P[aiPlayer].hand.splice(hasTool,1);
+                        log(PLAYER_NAMES[aiPlayer-1]+'剪掉对手区域'+(zi+1)+'的幼苗',aiPlayer);
                         finishTurn();
                         return;
                     }else if(myZones.length>0&&Math.random()<0.3){
@@ -958,8 +1042,8 @@
                         const zi=S.Z.indexOf(z);
                         S.DC.push(z.seedling);
                         z.seedling=null;
-                        S.P[2].hand.splice(hasTool,1);
-                        log('AI剪掉自己区域'+(zi+1)+'的幼苗(重新规划)',2);
+                        S.P[aiPlayer].hand.splice(hasTool,1);
+                        log(PLAYER_NAMES[aiPlayer-1]+'剪掉自己区域'+(zi+1)+'的幼苗(重新规划)',aiPlayer);
                         finishTurn();
                         return;
                     }
@@ -967,7 +1051,7 @@
                 
                 // 铲子：随机决定是否交换
                 if(tool.value==='铲子'){
-                    const mySeeds=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified&&z.owner===2);
+                    const mySeeds=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified&&z.owner===aiPlayer);
                     if(mySeeds.length>0&&S.seedPool.length>0&&Math.random()<0.5){
                         const z=mySeeds[Math.floor(Math.random()*mySeeds.length)];
                         const zi=S.Z.indexOf(z);
@@ -975,8 +1059,8 @@
                         const newSeed=S.seedPool.pop();
                         z.seed={name:newSeed.name,...newSeed,revealed:false};
                         S.seedPool.push({name:oldSeed.name,...oldSeed});
-                        S.P[2].hand.splice(hasTool,1);
-                        log('AI交换区域'+(zi+1)+'种子(随机)',2);
+                        S.P[aiPlayer].hand.splice(hasTool,1);
+                        log(PLAYER_NAMES[aiPlayer-1]+'交换区域'+(zi+1)+'种子(随机)',aiPlayer);
                         finishTurn();
                         return;
                     }
@@ -984,76 +1068,83 @@
             }
             
             // ===== 策略5：没有有用行动，结束回合 =====
-            log('AI无事可做',2);
+            log(PLAYER_NAMES[aiPlayer-1]+'无事可做',aiPlayer);
             finishTurn();
         },500);
     }
 
-    function checkEnd(){const all=S.Z.filter(z=>z.seed).every(z=>z.verified);if(all){
+    function checkEnd(){
+        const all=S.Z.filter(z=>z.seed).every(z=>z.verified);
+        if(all){
             // 统计所有成功验证的区域（不看谁验证的）
             const cnt={'花卉':0,'水果':0,'蔬菜':0};
             S.Z.filter(z=>z.verified==='ok').forEach(z=>cnt[z.seed.type]++);
             // 每个人按自己任务计分
-            for(let p=1;p<=2;p++){
+            for(let p=1;p<=S.totalPlayers;p++){
                 const task=S.P[p].task;
-                S.P[p].score=task.type==='混合'?(cnt['蔬菜']+cnt['水果'])*2:cnt[task.type]*task.score;
+                S.P[p].score=task.type==='混合'?(cnt['花卉']+cnt['水果']+cnt['蔬菜'])*2:cnt[task.type]*task.score;
             }
             showResult();
-        }}
+        }
+    }
 
     function showResult(){
         S.over=true;
         const r=document.getElementById('result-box');
-        const win=S.P[1].score>S.P[2].score?1:S.P[2].score>S.P[1].score?2:0;
+        
+        // 找最高分
+        let maxScore=-1,winners=[];
+        for(let p=1;p<=S.totalPlayers;p++){
+            if(S.P[p].score>maxScore){maxScore=S.P[p].score;winners=[p];}
+            else if(S.P[p].score===maxScore)winners.push(p);
+        }
         
         // 统计成功区域
         const cnt={'花卉':0,'水果':0,'蔬菜':0};
         S.Z.filter(z=>z.verified==='ok').forEach(z=>cnt[z.seed.type]++);
         
-        let html='<div style="max-width:500px;margin:0 auto;">';
+        let html='<div style="max-width:550px;margin:0 auto;">';
         
         // 成功区域一览
         html+='<div style="background:#f5f5f5;border-radius:12px;padding:15px;margin-bottom:15px;">';
         html+='<div style="text-align:center;font-weight:bold;margin-bottom:10px;">🌱 场地成功区域</div>';
-        html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">';
+        html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">';
         S.Z.forEach((z,i)=>{
             const ok=z.verified==='ok';
             const typeColor={'花卉':'#e91e63','水果':'#ff9800','蔬菜':'#4caf50'}[z.seed.type]||'#666';
-            html+=`<div style="background:${ok?'#e8f5e9':'#ffebee'};padding:8px;border-radius:8px;text-align:center;">
-                <div style="font-weight:bold">${ok?'✅':'❌'} 区${i+1}</div>
+            html+=`<div style="background:${ok?'#e8f5e9':'#ffebee'};padding:6px;border-radius:6px;text-align:center;font-size:0.85em;">
+                <div style="font-weight:bold">${ok?'✅':'❌'} ${i+1}</div>
                 <div style="color:${typeColor}">${z.seed.name}</div>
             </div>`;
         });
         html+='</div></div>';
         
         // 计分统计
-        html+='<div style="background:#fffde7;border-radius:12px;padding:15px;margin-bottom:15px;text-align:center;">';
-        html+='<div style="font-weight:bold;margin-bottom:8px;">📊 计分</div>';
-        html+=`<div>花卉 ${cnt['花卉']}个 × 3分 + 水果 ${cnt['水果']}个 × 3分 + 蔬菜 ${cnt['蔬菜']}个 × 3分</div>`;
+        html+='<div style="background:#fffde7;border-radius:12px;padding:12px;margin-bottom:15px;text-align:center;font-size:0.9em;">';
+        html+='<div style="font-weight:bold;margin-bottom:6px;">📊 场地计分</div>';
+        html+=`<div>🌸花卉 ${cnt['花卉']} | 🍎水果 ${cnt['水果']} | 🥬蔬菜 ${cnt['蔬菜']}</div>`;
         html+='</div>';
         
-        // 双方分数
-        html+='<div style="display:flex;gap:15px;justify-content:center;">';
-        html+=`<div style="flex:1;background:#e8f5e9;border-radius:12px;padding:15px;text-align:center;">
-            <div style="font-weight:bold;color:#2E7D32;margin-bottom:5px;">🌿 玩家1</div>
-            <div style="font-size:0.9em;color:#666;margin-bottom:5px;">${S.P[1].task.name}</div>
-            <div style="font-size:1.8em;font-weight:bold;color:#2E7D32;">${S.P[1].score}分</div>
-            ${win===1?'<div>👑</div>':''}
-        </div>`;
-        const p2Name=isAI?'🤖 AI':'🌵 玩家2';
-        html+=`<div style="flex:1;background:#e3f2fd;border-radius:12px;padding:15px;text-align:center;">
-            <div style="font-weight:bold;color:#1976D2;margin-bottom:5px;">${p2Name}</div>
-            <div style="font-size:0.9em;color:#666;margin-bottom:5px;">${S.P[2].task.name}</div>
-            <div style="font-size:1.8em;font-weight:bold;color:#1976D2;">${S.P[2].score}分</div>
-            ${win===2?'<div>👑</div>':''}
-        </div>`;
+        // 玩家分数列表
+        html+='<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">';
+        for(let p=1;p<=S.totalPlayers;p++){
+            const isWin=winners.includes(p);
+            const bgColors=['#e8f5e9','#e3f2fd','#fce4ec','#fff3e0','#e8eaf6','#f3e5f5'];
+            const textColors=['#2E7D32','#1976D2','#c2185b','#e65100','#303f9f','#7b1fa2'];
+            html+=`<div style="flex:1;min-width:140px;background:${bgColors[p-1]};border-radius:12px;padding:12px;text-align:center;">
+                <div style="font-weight:bold;color:${textColors[p-1]};margin-bottom:4px;">${PLAYER_ICONS[p-1]} ${S.P[p].isAI?'🤖 ':''}${PLAYER_NAMES[p-1]}</div>
+                <div style="font-size:0.75em;color:#666;margin-bottom:4px;">${S.P[p].task.name}</div>
+                <div style="font-size:1.5em;font-weight:bold;color:${textColors[p-1]};">${S.P[p].score}分</div>
+                ${isWin&&winners.length===1?'<div>👑</div>':isWin?'<div style="font-size:0.8em">👑并列</div>':''}
+            </div>`;
+        }
         html+='</div>';
         
-        if(!win)html+='<p style="text-align:center;padding:15px;color:#888;font-size:1.1em;">🤝 平局!</p>';
+        if(winners.length>1)html+=`<p style="text-align:center;padding:15px;color:#888;font-size:1.1em;">🤝 ${winners.map(p=>PLAYER_NAMES[p-1]).join('、')}并列第一!</p>`;
         
         html+='</div>';
         r.innerHTML=html;
-        document.getElementById('result-title').textContent=win?(win===1?'🏆 玩家1获胜!':'🏆 '+(isAI?'AI':'玩家2')+'获胜!'):'🤝 平局';
+        document.getElementById('result-title').textContent=winners.length===1?`🏆 ${PLAYER_NAMES[winners[0]-1]}获胜!`:'🤝 并列获胜';
         show('result-screen');
     }
 
