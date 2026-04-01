@@ -875,6 +875,58 @@
     function doEndTurn(){
         if(S.over)return;
         
+        const prevPlayer = S.cur;
+        const excess = S.P[prevPlayer].hand.length - 5;
+        
+        // 如果手牌超过5张，人类玩家需要弃牌
+        if(excess > 0 && !S.P[prevPlayer].isAI){
+            // 弹出弃牌框
+            let html='<h2>🗑️ 需要弃牌</h2><p>请选择 '+excess+' 张牌丢掉：</p><div class="modal-cards">';
+            S.P[prevPlayer].hand.forEach((c,i)=>{
+                const emoji=EMOJI[c.value]||c.type==='seedling'?'🌱':c.type==='leaf'?'🍃':'🔧';
+                html+=`<div class="modal-card modal-card-${c.type}" id="dc${i}" onclick="toggleDiscard(${i})">
+                    <span class="modal-card-emoji">${emoji}</span>
+                    <span>${c.value}</span>
+                </div>`;
+            });
+            html+='</div><p id="dhint" style="color:#4CAF50">已选 0/'+excess+'</p>';
+            html+='<button class="btn btn-primary" id="dbtn" onclick="confirmDiscard()" disabled>确认弃牌</button>';
+            window._discardData={excess,selected:[],player:prevPlayer};
+            modal(html);
+            return;
+        }
+        
+        // 继续轮转
+        advanceToNextPlayer();
+    }
+    
+    function toggleDiscard(i){
+        const d=window._discardData;
+        const el=document.getElementById('dc'+i);
+        if(d.selected.includes(i)){
+            d.selected=d.selected.filter(x=>x!==i);
+            el.classList.remove('selected');
+        }else if(d.selected.length<d.excess){
+            d.selected.push(i);
+            el.classList.add('selected');
+        }
+        document.getElementById('dhint').textContent=`已选 ${d.selected.length}/${d.excess}`;
+        document.getElementById('dbtn').disabled=d.selected.length!==d.excess;
+    }
+    
+    function confirmDiscard(){
+        const d=window._discardData;
+        if(d.selected.length!==d.excess) return;
+        // 弃牌
+        const toDiscard=d.selected.map(i=>S.P[d.player].hand[i]).reverse();
+        toDiscard.forEach(c=>S.DC.push(c));
+        d.selected.sort((a,b)=>b-a).forEach(i=>S.P[d.player].hand.splice(i,1));
+        log(PLAYER_NAMES[d.player-1]+'弃掉'+d.selected.length+'张',d.player);
+        closeModal();
+        advanceToNextPlayer();
+    }
+    
+    function advanceToNextPlayer(){
         // 多人轮转：按playerOrder顺序切换
         S.turnOrderIndex++;
         
@@ -926,42 +978,12 @@
         setTimeout(()=>{
             if(S.over||!isAITurn)return;
             
-            const taskTypes=S.P[aiPlayer].task.types; // 数组，如['水果','蔬菜']
-            const taskScore=S.P[aiPlayer].task.score;
+            const taskTypes=S.P[aiPlayer].task.types;
             
-            // ===== 策略1：验证所有可验证区域（优先自己得分，其次阻止对手得分）=====
-            const 可验=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified);
-            if(可验.length>0){
-                const 会成功=可验.filter(z=>isValidCombo(z.seedling.value,z.leaf.value,z.seed));
-                const 会失败=可验.filter(z=>!isValidCombo(z.seedling.value,z.leaf.value,z.seed));
-                
-                const AI任务成功=会成功.filter(z=>taskTypes.includes(z.seed.type));
-                const 对手任务成功=会成功.filter(z=>!taskTypes.includes(z.seed.type)&&z.owner&&z.owner!==aiPlayer);
-                
-                let 目标区=null,理由='';
-                // 优先自己任务，随机选一个
-                if(AI任务成功.length>0){目标区=AI任务成功[Math.floor(Math.random()*AI任务成功.length)];理由='任务匹配';}
-                else if(对手任务成功.length>0){目标区=对手任务成功[Math.floor(Math.random()*对手任务成功.length)];理由='阻止对手';}
-                // 未知情况：有30%概率随机验证一个会失败的区域来干扰对手
-                else if(会失败.length>0){
-                    if(Math.random()<0.3){
-                        目标区=会失败[Math.floor(Math.random()*会失败.length)];理由='随机干扰';
-                    }
-                }
-                
-                if(目标区){
-                    const zi=S.Z.indexOf(目标区);
-                    log(PLAYER_NAMES[aiPlayer-1]+'验证区域'+(zi+1)+'('+理由+')',aiPlayer);
-                    doVerifyZone(zi);
-                    return;
-                }
-            }
-            
-            // ===== 策略2：种幼苗，优先匹配任务类型 =====
+            // ===== 策略5：种幼苗 =====
             const needSeedling=S.Z.filter(z=>z.seed&&!z.seedling&&!z.verified);
             const 可种幼苗=S.P[aiPlayer].hand.filter(c=>c.type==='seedling');
             if(needSeedling.length>0&&可种幼苗.length>0){
-                // 找所有完美匹配（种子类型+幼苗值）
                 const 完美匹配=[];
                 for(const c of 可种幼苗){
                     for(const z of needSeedling){
@@ -980,7 +1002,6 @@
                     finishTurn();
                     return;
                 }
-                // 随机种在不完美匹配的区域
                 if(needSeedling.length>0){
                     const z=needSeedling[Math.floor(Math.random()*needSeedling.length)];
                     const c=可种幼苗[Math.floor(Math.random()*可种幼苗.length)];
@@ -994,11 +1015,10 @@
                 }
             }
             
-            // ===== 策略3：盖叶子，优先匹配任务类型 =====
+            // ===== 策略6：盖叶子 =====
             const needLeaf=S.Z.filter(z=>z.seed&&z.seedling&&!z.leaf&&!z.verified);
             const 可用叶子=S.P[aiPlayer].hand.filter(c=>c.type==='leaf');
             if(needLeaf.length>0&&可用叶子.length>0){
-                // 找所有完美匹配
                 const 完美匹配=[];
                 for(const c of 可用叶子){
                     for(const z of needLeaf){
@@ -1017,7 +1037,6 @@
                     finishTurn();
                     return;
                 }
-                // 随机盖在不完美匹配的区域
                 if(needLeaf.length>0){
                     const z=needLeaf[Math.floor(Math.random()*needLeaf.length)];
                     const c=可用叶子[Math.floor(Math.random()*可用叶子.length)];
@@ -1031,70 +1050,75 @@
                 }
             }
             
-            // ===== 策略4：使用道具（随机性决策）=====
-            const hasTool=S.P[aiPlayer].hand.findIndex(c=>c.type==='tool');
-            if(hasTool>=0&&Math.random()<0.7){ // 70%概率使用道具
-                const tool=S.P[aiPlayer].hand[hasTool];
-                
-                // 水桶：回收弃牌堆中对自己有用的卡
-                if(tool.value==='水桶'&&S.DC.length>0){
-                    const useful=S.DC.filter(c=>c.type==='seedling'||c.type==='leaf');
-                    if(useful.length>0){
-                        const card=useful[Math.floor(Math.random()*useful.length)];
-                        S.DC=S.DC.filter(c=>c!==card);
-                        S.P[aiPlayer].hand.push(card);
-                        S.P[aiPlayer].hand.splice(hasTool,1);
-                        log(PLAYER_NAMES[aiPlayer-1]+'回收'+card.value,aiPlayer);
-                        finishTurn();
-                        return;
-                    }
-                }
-                
-                // 剪刀：优先剪对手，随机选一个目标
-                if(tool.value==='剪刀'){
-                    const opponentZones=S.Z.filter(z=>z.seedling&&!z.verified&&z.owner&&z.owner!==aiPlayer);
-                    const myZones=S.Z.filter(z=>z.seedling&&!z.verified&&z.owner===aiPlayer);
-                    if(opponentZones.length>0){
-                        const z=opponentZones[Math.floor(Math.random()*opponentZones.length)];
-                        const zi=S.Z.indexOf(z);
-                        S.DC.push(z.seedling);
-                        z.seedling=null;
-                        S.P[aiPlayer].hand.splice(hasTool,1);
-                        log(PLAYER_NAMES[aiPlayer-1]+'剪掉对手区域'+(zi+1)+'的幼苗',aiPlayer);
-                        finishTurn();
-                        return;
-                    }else if(myZones.length>0&&Math.random()<0.3){
-                        // 30%概率剪自己的（重新规划）
-                        const z=myZones[Math.floor(Math.random()*myZones.length)];
-                        const zi=S.Z.indexOf(z);
-                        S.DC.push(z.seedling);
-                        z.seedling=null;
-                        S.P[aiPlayer].hand.splice(hasTool,1);
-                        log(PLAYER_NAMES[aiPlayer-1]+'剪掉自己区域'+(zi+1)+'的幼苗(重新规划)',aiPlayer);
-                        finishTurn();
-                        return;
-                    }
-                }
-                
-                // 铲子：随机决定是否交换
-                if(tool.value==='铲子'){
-                    const mySeeds=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified&&z.owner===aiPlayer);
-                    if(mySeeds.length>0&&S.seedPool.length>0&&Math.random()<0.5){
-                        const z=mySeeds[Math.floor(Math.random()*mySeeds.length)];
-                        const zi=S.Z.indexOf(z);
-                        const oldSeed=z.seed;
-                        const newSeed=S.seedPool.pop();
-                        z.seed={name:newSeed.name,...newSeed,revealed:false};
-                        S.seedPool.push({name:oldSeed.name,...oldSeed});
-                        S.P[aiPlayer].hand.splice(hasTool,1);
-                        log(PLAYER_NAMES[aiPlayer-1]+'交换区域'+(zi+1)+'种子(随机)',aiPlayer);
-                        finishTurn();
-                        return;
-                    }
+            // ===== 策略7：使用铲子 - 种植完后尝试交换优化 =====
+            const shovelIdx=S.P[aiPlayer].hand.findIndex(c=>c.type==='tool'&&c.value==='铲子');
+            if(shovelIdx>=0){
+                const mySeeds=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified&&z.owner===aiPlayer);
+                const needMoreSeedling=S.Z.filter(z=>z.seed&&!z.seedling&&!z.verified&&z.owner===aiPlayer);
+                if(mySeeds.length>0&&S.seedPool.length>0&&needMoreSeedling.length>0){
+                    const z=mySeeds[Math.floor(Math.random()*mySeeds.length)];
+                    const zi=S.Z.indexOf(z);
+                    const oldSeed=z.seed;
+                    const newSeed=S.seedPool.pop();
+                    z.seed={name:newSeed.name,...newSeed,revealed:false};
+                    S.seedPool.push({name:oldSeed.name,...oldSeed});
+                    S.P[aiPlayer].hand.splice(shovelIdx,1);
+                    log(PLAYER_NAMES[aiPlayer-1]+'用铲子交换区域'+(zi+1)+'种子',aiPlayer);
+                    finishTurn();
+                    return;
                 }
             }
             
-            // ===== 策略5：没有有用行动，结束回合 =====
+            // ===== 策略8：使用水桶 - 回收弃牌 =====
+            const bucketIdx=S.P[aiPlayer].hand.findIndex(c=>c.type==='tool'&&c.value==='水桶');
+            if(bucketIdx>=0&&S.DC.length>0){
+                const useful=S.DC.filter(c=>c.type==='seedling'||c.type==='leaf');
+                if(useful.length>0){
+                    const card=useful[Math.floor(Math.random()*useful.length)];
+                    S.DC=S.DC.filter(c=>c!==card);
+                    S.P[aiPlayer].hand.push(card);
+                    S.P[aiPlayer].hand.splice(bucketIdx,1);
+                    log(PLAYER_NAMES[aiPlayer-1]+'用水桶回收'+card.value,aiPlayer);
+                    finishTurn();
+                    return;
+                }
+            }
+            
+            // ===== 策略9：验证 =====
+            const 可验=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified);
+            if(可验.length>0){
+                const 会成功=可验.filter(z=>isValidCombo(z.seedling.value,z.leaf.value,z.seed));
+                const 会失败=可验.filter(z=>!isValidCombo(z.seedling.value,z.leaf.value,z.seed));
+                const AI任务成功=会成功.filter(z=>taskTypes.includes(z.seed.type));
+                const 对手任务成功=会成功.filter(z=>!taskTypes.includes(z.seed.type)&&z.owner&&z.owner!==aiPlayer);
+                let 目标区=null,理由='';
+                if(AI任务成功.length>0){目标区=AI任务成功[Math.floor(Math.random()*AI任务成功.length)];理由='任务匹配';}
+                else if(对手任务成功.length>0){目标区=对手任务成功[Math.floor(Math.random()*对手任务成功.length)];理由='阻止对手';}
+                else if(会失败.length>0&&Math.random()<0.3){目标区=会失败[Math.floor(Math.random()*会失败.length)];理由='随机干扰';}
+                if(目标区){
+                    const zi=S.Z.indexOf(目标区);
+                    log(PLAYER_NAMES[aiPlayer-1]+'验证区域'+(zi+1)+'('+理由+')',aiPlayer);
+                    doVerifyZone(zi);
+                    return;
+                }
+            }
+            
+            // ===== 策略10：检查手牌是否超过5张，弃牌 =====
+            if(S.P[aiPlayer].hand.length > 5){
+                const excess = S.P[aiPlayer].hand.length - 5;
+                let discarded = 0;
+                for(let i=S.P[aiPlayer].hand.length-1; i>=0 && discarded<excess; i--){
+                    const c = S.P[aiPlayer].hand[i];
+                    if(c.type==='tool') continue;
+                    S.DC.push(c);
+                    S.P[aiPlayer].hand.splice(i,1);
+                    discarded++;
+                }
+                log(PLAYER_NAMES[aiPlayer-1]+'弃掉'+discarded+'张',aiPlayer);
+                render();
+            }
+            
+            // ===== 策略11：结束回合 =====
             log(PLAYER_NAMES[aiPlayer-1]+'无事可做',aiPlayer);
             finishTurn();
         },500);
