@@ -45,8 +45,8 @@
         .btn-tool { background: linear-gradient(135deg, #FFB74D, #FF9800); color: white; }
         .btn-verify { background: linear-gradient(135deg, #64B5F6, #2196F3); color: white; }
         .btn-end { background: linear-gradient(135deg, #EF9A9A, #F44336); color: white; }
-        .game-area { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; width: 100%; max-width: 900px; }
-        .zones-container { background: rgba(139,90,43,0.7); padding: 10px; border-radius: 12px; border: 3px solid #8B5A2B; width: 100%; }
+        .game-area { display: flex; gap: 10px; justify-content: center; width: 100%; max-width: 1100px; }
+        .zones-container { background: rgba(139,90,43,0.7); padding: 10px; border-radius: 12px; border: 3px solid #8B5A2B; flex: 1; }
         .zones-grid { display: grid; gap: 8px; justify-content: center; }
         /* 根据区域数量动态调整列数 */
         .zones-grid.zones-4 { grid-template-columns: repeat(2, 1fr); max-width: 400px; margin: 0 auto; }
@@ -81,35 +81,35 @@
         .zone-status.ok { color: #81C784; font-weight: bold; }
         .zone-status.fail { color: #EF5350; }
         .zone-status.pending { color: #FFD54F; }
-        .side-panel { display: flex; flex-direction: column; gap: 6px; }
+        .side-panel { display: flex; flex-direction: column; gap: 8px; width: 100px; flex-shrink: 0; }
         .panel-box { background: rgba(0,0,0,0.3); padding: 8px; border-radius: 10px; color: white; text-align: center; }
         .panel-box h3 { font-size: 0.7em; color: #A5D6A7; margin-bottom: 4px; }
-        .deck { width: 45px; height: 60px; background: linear-gradient(135deg, #6B8E6B, #5A7D5A); border-radius: 6px; border: 2px solid #4A6E4A; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; margin: 0 auto; font-size: 0.65em; }
+        .deck { width: 50px; height: 65px; background: linear-gradient(135deg, #6B8E6B, #5A7D5A); border-radius: 6px; border: 2px solid #4A6E4A; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; margin: 0 auto; font-size: 0.7em; aspect-ratio: 3/4; }
         .deck:hover { transform: scale(1.05); }
-        .deck-icon { font-size: 1.1em; }
-        .deck-count { font-size: 0.9em; font-weight: bold; }
-        .discard-area { min-height: 60px; display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; align-items: center; }
+        .deck-icon { font-size: 1.2em; }
+        .deck-count { font-size: 1em; font-weight: bold; }
+        .discard-area { min-height: 80px; display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; align-items: center; }
         .discard-empty { color: rgba(255,255,255,0.4); font-size: 0.65em; }
-        .hand-area { position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.7)); padding: 8px 10px 10px; backdrop-filter: blur(5px); }
-        .hand-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-        .hand-label { color: white; font-size: 0.75em; display: flex; align-items: center; gap: 6px; }
-        .hand-count { background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 6px; font-size: 0.7em; }
-        .hand-cards { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; }
-        .seed-card-hand { width: 60px; background: linear-gradient(135deg, #FFE4B5, #FFDAB9); border-radius: 6px; border: 2px solid #DEB887; padding: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 0.55em; text-align: center; min-height: 70px; }
-        .seed-card-hand:hover { transform: translateY(-5px); box-shadow: 0 5px 12px rgba(0,0,0,0.4); }
-        .seed-card-hand.selected { transform: translateY(-10px); box-shadow: 0 8px 16px rgba(76,175,80,0.5); border-color: #4CAF50; }
+        .hand-area { position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.7)); padding: 10px 12px 12px; backdrop-filter: blur(5px); }
+        .hand-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .hand-label { color: white; font-size: 0.8em; display: flex; align-items: center; gap: 8px; }
+        .hand-count { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 6px; font-size: 0.75em; }
+        .hand-cards { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .seed-card-hand { width: 70px; background: linear-gradient(135deg, #FFE4B5, #FFDAB9); border-radius: 8px; border: 2px solid #DEB887; padding: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 0.6em; text-align: center; aspect-ratio: 3/4; }
+        .seed-card-hand:hover { transform: translateY(-6px); box-shadow: 0 6px 15px rgba(0,0,0,0.4); }
+        .seed-card-hand.selected { transform: translateY(-12px); box-shadow: 0 10px 20px rgba(76,175,80,0.5); border-color: #4CAF50; }
         .seed-card-hand.disabled { opacity: 0.5; cursor: not-allowed; }
         .seed-card-hand.disabled:hover { transform: none; }
-        .seed-card-hand .plant-name { font-weight: bold; font-size: 0.85em; color: #5D3A1A; margin-bottom: 1px; }
-        .seed-card-hand .plant-type { color: #8B4513; font-size: 0.75em; }
-        .seed-card-hand .plant-detail { color: #666; font-size: 0.7em; }
-        .card { width: 50px; height: 65px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 0.6em; text-align: center; padding: 3px; }
-        .card:hover { transform: translateY(-5px); box-shadow: 0 5px 12px rgba(0,0,0,0.4); }
-        .card.selected { transform: translateY(-10px); box-shadow: 0 8px 16px rgba(76,175,80,0.5); border: 2px solid #4CAF50; }
+        .seed-card-hand .plant-name { font-weight: bold; font-size: 0.9em; color: #5D3A1A; margin-bottom: 2px; }
+        .seed-card-hand .plant-type { color: #8B4513; font-size: 0.8em; }
+        .seed-card-hand .plant-detail { color: #666; font-size: 0.75em; }
+        .card { width: 60px; height: 80px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 0.65em; text-align: center; padding: 4px; }
+        .card:hover { transform: translateY(-6px); box-shadow: 0 6px 15px rgba(0,0,0,0.4); }
+        .card.selected { transform: translateY(-12px); box-shadow: 0 10px 20px rgba(76,175,80,0.5); border: 2px solid #4CAF50; }
         .card.disabled { opacity: 0.4; cursor: not-allowed; }
         .card.disabled:hover { transform: none; }
         .card.clickable { animation: cardGlow 1.5s infinite; }
-        @keyframes cardGlow { 0%,100% { box-shadow: 0 0 5px rgba(76,175,80,0.3); } 50% { box-shadow: 0 0 10px rgba(76,175,80,0.6); } }
+        @keyframes cardGlow { 0%,100% { box-shadow: 0 0 5px rgba(76,175,80,0.3); } 50% { box-shadow: 0 0 12px rgba(76,175,80,0.6); } }
         .card-seedling { background: linear-gradient(135deg, #98D8AA, #7BC88C); border: 2px solid #4CAF50; }
         .card-leaf { background: linear-gradient(135deg, #66BB6A, #4CAF50); border: 2px solid #388E3C; }
         .card-tool { background: linear-gradient(135deg, #FFB74D, #FFA726); border: 2px solid #F57C00; }
@@ -148,7 +148,7 @@
         .result-winner { background: linear-gradient(135deg, #FFF9C4, #FFEE58); margin: -20px -30px; padding: 10px 30px; border-radius: 18px 18px 0 0; }
         .toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.85); color: white; padding: 12px 30px; border-radius: 12px; font-size: 0.95em; z-index: 200; display: none; animation: toastIn 0.3s ease; }
         @keyframes toastIn { from { opacity: 0; transform: translate(-50%,-50%) scale(0.8); } }
-        @media (max-width: 850px) { .game-area { flex-direction: column; align-items: center; } .game-log { display: none; } .guide-btn { bottom: 160px; } .modal-card { width: 65px; min-height: 85px; } .zones-grid.zones-4, .zones-grid.zones-6, .zones-grid.zones-8, .zones-grid.zones-10, .zones-grid.zones-12, .zones-grid.zones-14 { grid-template-columns: repeat(3, 1fr); max-width: 100%; } .zone { min-height: 100px; } .seed-card-hand { width: 55px; min-height: 65px; } }
+        @media (max-width: 850px) { .game-area { flex-direction: column; align-items: center; } .side-panel { flex-direction: row; width: 100%; justify-content: center; } .game-log { display: none; } .guide-btn { bottom: 180px; } .modal-card { width: 65px; min-height: 85px; } .zones-grid.zones-4, .zones-grid.zones-6, .zones-grid.zones-8, .zones-grid.zones-10, .zones-grid.zones-12, .zones-grid.zones-14 { grid-template-columns: repeat(3, 1fr); max-width: 100%; } .zone { min-height: 120px; } .seed-card-hand { width: 60px; } .card { width: 50px; height: 65px; } }
     </style>
 </head>
 <body>
