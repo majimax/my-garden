@@ -381,7 +381,9 @@
             const ez=S.Z.map((z,i)=>z.seed===null?i:-1).filter(i=>i>=0).slice(0,2);
             if(ez.length>=2){
                 S.Z[ez[0]].seed={...selected[0],revealed:false};
+                S.Z[ez[0]].owner=p;
                 S.Z[ez[1]].seed={...selected[1],revealed:false};
+                S.Z[ez[1]].owner=p;
                 log((isAI?'AI':'P'+p)+'放置了种子卡',p);
             }
             // 剩下2张放回牌堆底部
@@ -449,7 +451,9 @@
         const card1=pd.d.cards[pd.d.selected[0]];
         const card2=pd.d.cards[pd.d.selected[1]];
         S.Z[pd.placements[0]].seed={...card1,revealed:false};
+        S.Z[pd.placements[0]].owner=pd.d.player;
         S.Z[zi].seed={...card2,revealed:false};
+        S.Z[zi].owner=pd.d.player;
         
         // 剩下2张种子卡放回牌堆底部
         const unused=pd.d.cards.filter((c,i)=>!pd.d.selected.includes(i));
