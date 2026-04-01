@@ -716,6 +716,9 @@
         if(cardType==='seedling'){zone.seedling=null;log('剪掉幼苗',S.cur);}
         else{zone.leaf=null;log('剪掉叶子',S.cur);}
         
+        // 剪刀本身已经在上一步从手牌移除了，现在放到弃牌区
+        S.DC.push({type:'tool',value:'剪刀'});
+        
         // 标记本回合已使用道具（但可以继续使用幼苗/叶子卡）
         window._usedTool=true;
         finishTurn();
@@ -1037,6 +1040,7 @@
                     S.DC.push({...z.seedling,type:'seedling'});
                     z.seedling=null;
                     S.P[aiPlayer].hand.splice(aiScissorsIdx,1);
+                    S.DC.push({type:'tool',value:'剪刀'});
                     window._usedTool=true;
                     log(PLAYER_NAMES[aiPlayer-1]+'剪掉对手区域'+(zi+1)+'的幼苗',aiPlayer);
                     finishTurn();
@@ -1049,6 +1053,7 @@
                     S.DC.push({...z.seedling,type:'seedling'});
                     z.seedling=null;
                     S.P[aiPlayer].hand.splice(aiScissorsIdx,1);
+                    S.DC.push({type:'tool',value:'剪刀'});
                     window._usedTool=true;
                     log(PLAYER_NAMES[aiPlayer-1]+'剪掉对手区域'+(zi+1)+'的幼苗',aiPlayer);
                     finishTurn();
