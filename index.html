@@ -599,7 +599,10 @@
         // 弃牌
         const dc=document.getElementById('discard-area');
         if(S.DC.length===0)dc.innerHTML='<span class="discard-empty">暂无</span>';
-        else dc.innerHTML=S.DC.slice(-3).map(c=>`<div class="card card-${c.type}" style="width:32px;height:44px"><span style="font-size:0.9em">${EMOJI[c.value]||'📦'}</span></div>`).join('');
+        else dc.innerHTML=S.DC.slice(-5).map(c=>{
+            const cardType=c.type||(['单子叶','双子叶'].includes(c.value)?'seedling':'leaf');
+            return `<div class="card card-${cardType}" style="width:32px;height:44px"><span style="font-size:0.9em">${EMOJI[c.value]||'📦'}</span></div>`;
+        }).join('');
         
         updateButtons();
     }
