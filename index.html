@@ -250,11 +250,14 @@
     }
     
     const SEED_DIST = {'花卉':8,'水果':7,'蔬菜':9};
-    const TASKS = [
-        {name:'🌸 花卉',desc:'每张3分',type:'花卉',score:3},
-        {name:'🍎 水果',desc:'每张3分',type:'水果',score:3},
-        {name:'🥬 蔬菜',desc:'每张3分',type:'蔬菜',score:3},
-        {name:'🍇 混合蔬果',desc:'每张2分',type:'混合',score:2},
+    // 人物卡（同时也是任务卡），每人抽一张不重复
+    const PERSONAS = [
+        {name:'👨 爸爸',desc:'水果+蔬菜 每张2分',types:['水果','蔬菜'],score:2,icon:'👨'},
+        {name:'👩 妈妈',desc:'花+水果 每张2分',types:['花卉','水果'],score:2,icon:'👩'},
+        {name:'👴 爷爷',desc:'花+蔬菜 每张2分',types:['花卉','蔬菜'],score:2,icon:'👴'},
+        {name:'👵 奶奶',desc:'蔬菜 每张3分',types:['蔬菜'],score:3,icon:'👵'},
+        {name:'👦 哥哥',desc:'水果 每张3分',types:['水果'],score:3,icon:'👦'},
+        {name:'👧 姐姐',desc:'花 每张3分',types:['花卉'],score:3,icon:'👧'},
     ];
     
     let S={},isAI=false,isAITurn=false,currentAction='';
@@ -306,10 +309,10 @@
         show('game-screen');
         document.getElementById('game-log').innerHTML='<div class="log-entry">📍 游戏开始 ('+totalPlayers+'人局)</div>';
         
-        // 随机分配任务
-        const taskPool=[...TASKS];shuffle(taskPool);
+        // 随机分配人物卡（每人一张，不重复）
+        const personaPool=[...PERSONAS];shuffle(personaPool);
         for(let i=1;i<=totalPlayers;i++){
-            S.P[i].task=taskPool[(i-1)%taskPool.length];
+            S.P[i].task=personaPool[i-1];
         }
         
         // 随机玩家顺序
@@ -899,7 +902,7 @@
         setTimeout(()=>{
             if(S.over||!isAITurn)return;
             
-            const taskType=S.P[aiPlayer].task.type; // 花卉/水果/蔬菜/混合
+            const taskTypes=S.P[aiPlayer].task.types; // 数组，如['水果','蔬菜']
             const taskScore=S.P[aiPlayer].task.score;
             
             // ===== 策略1：验证所有可验证区域（优先自己得分，其次阻止对手得分）=====
@@ -908,8 +911,8 @@
                 const 会成功=可验.filter(z=>isValidCombo(z.seedling.value,z.leaf.value,z.seed));
                 const 会失败=可验.filter(z=>!isValidCombo(z.seedling.value,z.leaf.value,z.seed));
                 
-                const AI任务成功=会成功.filter(z=>taskType==='混合'||z.seed.type===taskType);
-                const 对手任务成功=会成功.filter(z=>taskType!=='混合'&&z.seed.type!==taskType&&z.owner&&z.owner!==aiPlayer);
+                const AI任务成功=会成功.filter(z=>taskTypes.includes(z.seed.type));
+                const 对手任务成功=会成功.filter(z=>!taskTypes.includes(z.seed.type)&&z.owner&&z.owner!==aiPlayer);
                 
                 let 目标区=null,理由='';
                 // 优先自己任务，随机选一个
@@ -938,7 +941,7 @@
                 const 完美匹配=[];
                 for(const c of 可种幼苗){
                     for(const z of needSeedling){
-                        if((taskType==='混合'||z.seed.type===taskType)&&c.value===z.seed.seedling){
+                        if(taskTypes.includes(z.seed.type)&&c.value===z.seed.seedling){
                             完美匹配.push({card:c,zone:z});
                         }
                     }
@@ -975,7 +978,7 @@
                 const 完美匹配=[];
                 for(const c of 可用叶子){
                     for(const z of needLeaf){
-                        if((taskType==='混合'||z.seed.type===taskType)&&c.value===z.seed.leaf){
+                        if(taskTypes.includes(z.seed.type)&&c.value===z.seed.leaf){
                             完美匹配.push({card:c,zone:z});
                         }
                     }
@@ -1079,10 +1082,12 @@
             // 统计所有成功验证的区域（不看谁验证的）
             const cnt={'花卉':0,'水果':0,'蔬菜':0};
             S.Z.filter(z=>z.verified==='ok').forEach(z=>cnt[z.seed.type]++);
-            // 每个人按自己任务计分
+            // 每个人按自己人物卡计分
             for(let p=1;p<=S.totalPlayers;p++){
                 const task=S.P[p].task;
-                S.P[p].score=task.type==='混合'?(cnt['花卉']+cnt['水果']+cnt['蔬菜'])*2:cnt[task.type]*task.score;
+                // 统计匹配类型的数量，乘以每张分数
+                const matchedCount=task.types.reduce((sum,t)=>sum+cnt[t],0);
+                S.P[p].score=matchedCount*task.score;
             }
             showResult();
         }
