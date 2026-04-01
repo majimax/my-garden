@@ -1289,11 +1289,10 @@
             const isWin=winners.includes(p);
             const bgColors=['#e8f5e9','#e3f2fd','#fce4ec','#fff3e0','#e8eaf6','#f3e5f5'];
             const textColors=['#2E7D32','#1976D2','#c2185b','#e65100','#303f9f','#7b1fa2'];
-            // 只显示玩家自己的任务，其他玩家任务隐藏
-            const taskShow = (!S.P[p].isAI) ? S.P[p].task.name : '🤖 AI';
+            // 结果页面显示所有玩家的任务
             html+=`<div style="flex:1;min-width:140px;background:${bgColors[p-1]};border-radius:12px;padding:12px;text-align:center;">
                 <div style="font-weight:bold;color:${textColors[p-1]};margin-bottom:4px;">${PLAYER_ICONS[p-1]} ${S.P[p].isAI?'🤖 ':''}${PLAYER_NAMES[p-1]}</div>
-                <div style="font-size:0.75em;color:#666;margin-bottom:4px;">${taskShow}</div>
+                <div style="font-size:0.75em;color:#666;margin-bottom:4px;">${S.P[p].task.name}</div>
                 <div style="font-size:1.5em;font-weight:bold;color:${textColors[p-1]};">${S.P[p].score}分</div>
                 ${isWin&&winners.length===1?'<div>👑</div>':isWin?'<div style="font-size:0.8em">👑并列</div>':''}
             </div>`;
