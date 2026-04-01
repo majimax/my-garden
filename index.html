@@ -430,7 +430,7 @@
         window._placeData={d,ez,step:0,placements:[]};
         let html='<h2>选择第一张卡的区域</h2><p>'+d.cards[d.selected[0]].name+' 放到：</p><div class="modal-cards">';
         ez.forEach(zi=>{html+=`<div class="modal-card modal-card-seed" onclick="placeSeedCard(${zi})"><span style="font-size:1.3em">📍</span><span>区域${zi+1}</span></div>`;});
-        html+='</div>';
+        html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';
         modal(html);
     }
     
@@ -441,7 +441,7 @@
             pd.step=1;
             let html='<h2>选择第二张卡的区域</h2><p>'+pd.d.cards[pd.d.selected[1]].name+' 放到：</p><div class="modal-cards">';
             pd.ez.filter(z=>z!==pd.placements[0]).forEach(z=>{html+=`<div class="modal-card modal-card-seed" onclick="placeSeedCard2(${z})"><span style="font-size:1.3em">📍</span><span>区域${z+1}</span></div>`;});
-            html+='</div>';
+            html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';
             modal(html);
         }
     }
@@ -853,7 +853,6 @@
                 log('放'+c.value+'叶子到区'+(zi+1),S.cur);
                 window._mainActionDone=true;
                 finishTurn();
-                finishTurn();
             }else{
                 toast('该区域不能放叶子');
             }
@@ -872,6 +871,14 @@
 
     function doVerify(){
         if(window._mainActionDone){toast('本回合已执行操作');return;}
+        // 如果已经在verify模式，取消
+        if(currentAction==='verify'){
+            currentAction='';
+            render();
+            updateHint();
+            toast('已取消');
+            return;
+        }
         const 可验=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified);
         if(可验.length===0){toast('无区域可验证');return;}
         // 高亮可验证区域，等待用户点击
@@ -879,7 +886,7 @@
         window._selectedCard=-1;
         render();
         updateHint();
-        toast('点击高亮区域进行验证');
+        toast('点击高亮区域验证，再点验证按钮取消');
     }
 
     function doVerifyZone(zi){
