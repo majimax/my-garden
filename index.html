@@ -1344,12 +1344,16 @@
         html+='</table><button class="btn btn-secondary" onclick="closeModal()">关闭</button>';modal(html);
     }
     function showRule(){
-        let html='<h2>📋 游戏规则</h2><p style="text-align:left;font-size:0.85em;max-height:60vh;overflow-y:auto">';
-        html+='<strong>目标:</strong> 完成6个区域，按任务计分<br><br>';
-        html+='<strong>种子卡:</strong> 包含植物名+类别+幼苗类型+叶子形状<br><br>';
-        html+='<strong>每回合:</strong> 抽牌→行动→结束<br><br>';
-        html+='<strong>行动:</strong><br>🌱 种幼苗: 选幼苗卡→点目标区域<br>🍃 盖叶子: 选叶子卡→点目标种子区域<br>🔧 用道具: 剪刀移除/铲子查看交换/水桶回收<br>✅ 验证: 检查组合是否有效<br><br>';
-        html+='<strong>计分:</strong> 单一类型3分/张 混合2分/张</p>';
+        let html='<h2>📋 游戏规则</h2><p style="text-align:left;font-size:0.8em;max-height:60vh;overflow-y:auto">';
+        html+='<strong>🎯 目标:</strong> 完成所有区域验证，按人物任务计分<br><br>';
+        html+='<strong>👥 游戏模式:</strong><br>• 双人对战（2人）<br>• AI对战（1-5个AI + 玩家）<br><br>';
+        html+='<strong>👤 人物卡（每人一张，不重复）:</strong><br>• 👨 爸爸：水果+蔬菜，每张2分<br>• 👩 妈妈：花+水果，每张2分<br>• 👴 爷爷：花+蔬菜，每张2分<br>• 👵 奶奶：蔬菜，每张3分<br>• 👦 哥哥：水果，每张3分<br>• 👧 姐姐：花，每张3分<br><br>';
+        html+='<strong>🃏 卡牌类型:</strong><br>• 🌰 种子卡：24张（决定植物类型+幼苗+叶子组合）<br>• 🌱 幼苗卡：30张（单子叶/双子叶）<br>• 🍃 叶子卡：48张（卵形/披针/心形/掌状）<br>• 🔧 道具卡：24张（剪刀/铲子/水桶 各8张）<br><br>';
+        html+='<strong>📍 区域:</strong> 基础4个，每增加1个AI多2个区域<br><br>';
+        html+='<strong>🔄 每回合流程:</strong><br>1️⃣ 抽牌：从主牌库抽1张<br>2️⃣ 主操作（4选1，只能选一个）:<br>   🌱 种幼苗：选幼苗卡→点目标区域<br>   🍃 盖叶子：选叶子卡→点已有幼苗的区域<br>   ✅ 验证：点可验证区域（需有种子+幼苗+叶子）<br>3️⃣ 可选：使用道具（使用后仍可执行主操作）<br>4️⃣ 弃牌：手牌超过5张需选择丢弃<br><br>';
+        html+='<strong>🔧 道具说明:</strong><br>• ✂️ 剪刀：移除场上任意幼苗/叶子到弃牌区<br>• 🔧 铲子：查看自己未揭示种子，可选择交换<br>• 💧 水桶：从弃牌区回收幼苗/叶子到手牌<br><br>';
+        html+='<strong>✅ 验证规则:</strong><br>• 花卉：单子叶+卵形/心形 → 成功<br>• 水果：双子叶+卵形/披针 → 成功<br>• 蔬菜：双子叶+心形/掌状 → 成功<br><br>';
+        html+='<strong>🏆 计分:</strong> 验证成功的区域，按人物任务计算<br></p>';
         html+='<button class="btn btn-primary" onclick="closeModal()">开始!</button>';modal(html);
     }
     </script></body></html>
