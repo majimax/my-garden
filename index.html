@@ -659,8 +659,8 @@
     }
 
     function doDraw(){if(window._drew||currentAction)return;if(S.MD.length>0){S.P[S.cur].hand.push(S.MD.pop());window._drew=true;log('抽牌',S.cur);}else toast('牌库空!');render();updateHint();}
-    function doPlant(){if(currentAction==='plant'){currentAction='';window._selectedCard=-1;render();updateHint();return;}currentAction='plant';window._selectedCard=-1;window._targetZone=-1;render();updateHint();toast('选择幼苗卡');}
-    function doLeaf(){if(currentAction==='leaf'){currentAction='';window._selectedCard=-1;render();updateHint();return;}currentAction='leaf';window._selectedCard=-1;window._targetZone=-1;render();updateHint();toast('选择叶子卡');}
+    function doPlant(){if(window._mainActionDone){toast('本回合已执行操作');return;}if(currentAction==='plant'){currentAction='';window._selectedCard=-1;render();updateHint();return;}currentAction='plant';window._selectedCard=-1;window._targetZone=-1;render();updateHint();toast('选择幼苗卡');}
+    function doLeaf(){if(window._mainActionDone){toast('本回合已执行操作');return;}if(currentAction==='leaf'){currentAction='';window._selectedCard=-1;render();updateHint();return;}currentAction='leaf';window._selectedCard=-1;window._targetZone=-1;render();updateHint();toast('选择叶子卡');}
     function doTool(){
         if(window._usedTool){toast('本回合已使用道具');return;}
         const h=S.P[S.cur].hand;
@@ -822,6 +822,7 @@
                 S.P[S.cur].hand.splice(window._selectedCard,1);
                 S.Z[zi].seedling={value:c.value};
                 log('种'+c.value+'到区'+(zi+1),S.cur);
+                window._mainActionDone=true;
                 finishTurn();
             }else{
                 toast('该区域不能放幼苗');
@@ -832,6 +833,8 @@
                 S.P[S.cur].hand.splice(window._selectedCard,1);
                 S.Z[zi].leaf={value:c.value};
                 log('放'+c.value+'叶子到区'+(zi+1),S.cur);
+                window._mainActionDone=true;
+                finishTurn();
                 finishTurn();
             }else{
                 toast('该区域不能放叶子');
@@ -850,6 +853,7 @@
     }
 
     function doVerify(){
+        if(window._mainActionDone){toast('本回合已执行操作');return;}
         const 可验=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified);
         if(可验.length===0){toast('无区域可验证');return;}
         // 高亮可验证区域，等待用户点击
@@ -875,6 +879,7 @@
             log('❌验证失败',S.cur);
             toast('验证失败!');
         }
+        window._mainActionDone=true;
         closeModal();
         checkEnd();
         finishTurn();
@@ -988,6 +993,7 @@
         window._drew=false;
         window._acted=false;
         window._usedTool=false;
+        window._mainActionDone=false;
         currentAction='';
         window._selectedCard=-1;
         window._targetZone=-1;
