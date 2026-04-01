@@ -183,7 +183,7 @@
             <button class="action-btn btn-plant" id="btn-plant" onclick="doPlant()" disabled>🌱 种幼苗</button>
             <button class="action-btn btn-leaf" id="btn-leaf" onclick="doLeaf()" disabled>🍃 盖叶子</button>
             <button class="action-btn btn-tool" id="btn-tool" onclick="doTool()" disabled>🔧 用道具</button>
-            <button class="action-btn btn-verify" id="btn-verify" onclick="doVerify()" disabled>✅ 验证</button>
+            <button class="action-btn btn-verify" id="btn-verify" onclick="doVerify()" disabled>✅ 开花</button>
             <button class="action-btn btn-end" id="btn-end" onclick="doEndTurn()" disabled>⏭️ 结束</button>
         </div>
         <div class="game-area">
@@ -252,7 +252,7 @@
             // 图鉴模式：检查是否有任何植物匹配该类型
             return Object.entries(PLANTS).some(([name,info])=>info.seedling===seedling&&info.leaf===leaf&&info.type===seed);
         }
-        // 验证模式：检查是否与当前种子的要求完全匹配
+        // 开花模式：检查是否与当前种子的要求完全匹配
         return seed.seedling === seedling && seed.leaf === leaf;
     }
     
@@ -594,7 +594,7 @@
                 html+='</div>';
             }
             if(zone.verified)html+=`<div class="zone-status ${zone.verified}">${zone.verified==='ok'?'✅':'❌'}</div>`;
-            else if(zone.seedling&&zone.leaf)html+=`<div class="zone-status pending">可验证</div>`;
+            else if(zone.seedling&&zone.leaf)html+=`<div class="zone-status pending">可开花</div>`;
             else if(zone.seed&&!zone.seedling)html+=`<div class="zone-status pending">需幼苗</div>`;
             else if(zone.seedling&&!zone.leaf)html+=`<div class="zone-status pending">需叶子</div>`;
             html+='</div>';z.innerHTML+=html;
@@ -630,7 +630,7 @@
     }
 
     function updateHint(){
-        const hints={draw:'点击"抽牌"开始回合',plant:'选择幼苗卡，再点目标区域',leaf:'选择叶子卡，再点目标区域',tool:'选择道具卡使用',verify:'点击可验证的区域',end:'结束回合'};
+        const hints={draw:'点击"抽牌"开始回合',plant:'选择幼苗卡，再点目标区域',leaf:'选择叶子卡，再点目标区域',tool:'选择道具卡使用',verify:'点击可开花的区域',end:'结束回合'};
         document.getElementById('phase-hint').textContent=window._acted?'可结束':'进行中';
         document.getElementById('action-hint').textContent=currentAction?hints[currentAction]:hints.draw;
     }
@@ -884,11 +884,11 @@
                 toast('该区域不能放叶子');
             }
         }else if(currentAction==='verify'&&zone.seed&&zone.seedling&&zone.leaf&&!zone.verified){
-            // 验证：先翻牌动画，再显示结果
+            // 开花：先翻牌动画，再显示结果
             zone.flipping=true;
             currentAction='';
             render();
-            // 翻牌动画结束后触发验证
+            // 翻牌动画结束后触发开花
             setTimeout(()=>{
                 zone.flipping=false;
                 doVerifyZone(zi);
@@ -907,13 +907,13 @@
             return;
         }
         const 可验=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified);
-        if(可验.length===0){toast('无区域可验证');return;}
-        // 高亮可验证区域，等待用户点击
+        if(可验.length===0){toast('无区域可开花');return;}
+        // 高亮可开花区域，等待用户点击
         currentAction='verify';
         window._selectedCard=-1;
         render();
         updateHint();
-        toast('点击高亮区域验证，再点验证按钮取消');
+        toast('点击高亮区域开花，再点开花按钮取消');
     }
 
     function doVerifyZone(zi){
@@ -925,11 +925,11 @@
         zone.owner=S.cur;
         if(valid){
             S.P[S.cur].validations++;
-            log('✅'+zone.seed.name+'验证成功',S.cur);
-            toast('验证成功!');
+            log('✅'+zone.seed.name+'开花成功',S.cur);
+            toast('开花成功!');
         }else{
-            log('❌验证失败',S.cur);
-            toast('验证失败!');
+            log('❌开花失败',S.cur);
+            toast('开花失败!');
         }
         window._mainActionDone=true;
         closeModal();
@@ -1231,7 +1231,7 @@
                 }
             }
             
-            // ===== 策略9：验证 =====
+            // ===== 策略9：开花 =====
             const 可验=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.verified);
             if(可验.length>0){
                 const 会成功=可验.filter(z=>isValidCombo(z.seedling.value,z.leaf.value,z.seed));
@@ -1244,7 +1244,7 @@
                 else if(会失败.length>0&&Math.random()<0.3){目标区=会失败[Math.floor(Math.random()*会失败.length)];理由='随机干扰';}
                 if(目标区){
                     const zi=S.Z.indexOf(目标区);
-                    log(PLAYER_NAMES[aiPlayer-1]+'验证区域'+(zi+1)+'('+理由+')',aiPlayer);
+                    log(PLAYER_NAMES[aiPlayer-1]+'开花区域'+(zi+1)+'('+理由+')',aiPlayer);
                     doVerifyZone(zi);
                     return;
                 }
@@ -1295,7 +1295,7 @@
     function checkEnd(){
         const all=S.Z.filter(z=>z.seed).every(z=>z.verified);
         if(all){
-            // 统计所有成功验证的区域（不看谁验证的）
+            // 统计所有成功开花的区域（不看谁开花的）
             const cnt={'花卉':0,'水果':0,'蔬菜':0};
             S.Z.filter(z=>z.verified==='ok').forEach(z=>cnt[z.seed.type]++);
             // 每个人按自己人物卡计分
@@ -1379,15 +1379,15 @@
     }
     function showRule(){
         let html='<h2>📋 游戏规则</h2><p style="text-align:left;font-size:0.8em;max-height:60vh;overflow-y:auto">';
-        html+='<strong>🎯 目标:</strong> 完成所有区域验证，按人物任务计分<br><br>';
+        html+='<strong>🎯 目标:</strong> 完成所有区域开花，按人物任务计分<br><br>';
         html+='<strong>👥 游戏模式:</strong><br>• 双人对战（2人）<br>• AI对战（1-5个AI + 玩家）<br><br>';
         html+='<strong>👤 人物卡（每人一张，不重复）:</strong><br>• 👨 爸爸：水果+蔬菜，每张2分<br>• 👩 妈妈：花+水果，每张2分<br>• 👴 爷爷：花+蔬菜，每张2分<br>• 👵 奶奶：蔬菜，每张3分<br>• 👦 哥哥：水果，每张3分<br>• 👧 姐姐：花，每张3分<br><br>';
         html+='<strong>🃏 卡牌类型:</strong><br>• 🌰 种子卡：24张（决定植物类型+幼苗+叶子组合）<br>• 🌱 幼苗卡：30张（单子叶/双子叶）<br>• 🍃 叶子卡：48张（卵形/披针/心形/掌状）<br>• 🔧 道具卡：24张（剪刀/铲子/水桶 各8张）<br><br>';
         html+='<strong>📍 区域:</strong> 基础4个，每增加1个AI多2个区域<br><br>';
-        html+='<strong>🔄 每回合流程:</strong><br>1️⃣ 抽牌：从主牌库抽1张<br>2️⃣ 主操作（4选1，只能选一个）:<br>   🌱 种幼苗：选幼苗卡→点目标区域<br>   🍃 盖叶子：选叶子卡→点已有幼苗的区域<br>   ✅ 验证：点可验证区域（需有种子+幼苗+叶子）<br>3️⃣ 可选：使用道具（使用后仍可执行主操作）<br>4️⃣ 弃牌：手牌超过5张需选择丢弃<br><br>';
+        html+='<strong>🔄 每回合流程:</strong><br>1️⃣ 抽牌：从主牌库抽1张<br>2️⃣ 主操作（4选1，只能选一个）:<br>   🌱 种幼苗：选幼苗卡→点目标区域<br>   🍃 盖叶子：选叶子卡→点已有幼苗的区域<br>   ✅ 开花：点可开花区域（需有种子+幼苗+叶子）<br>3️⃣ 可选：使用道具（使用后仍可执行主操作）<br>4️⃣ 弃牌：手牌超过5张需选择丢弃<br><br>';
         html+='<strong>🔧 道具说明:</strong><br>• ✂️ 剪刀：移除场上任意幼苗/叶子到弃牌区<br>• 🔧 铲子：查看自己未揭示种子，可选择交换<br>• 💧 水桶：从弃牌区回收幼苗/叶子到手牌<br><br>';
-        html+='<strong>✅ 验证规则:</strong><br>• 花卉：单子叶+卵形/心形 → 成功<br>• 水果：双子叶+卵形/披针 → 成功<br>• 蔬菜：双子叶+心形/掌状 → 成功<br><br>';
-        html+='<strong>🏆 计分:</strong> 验证成功的区域，按人物任务计算<br></p>';
+        html+='<strong>✅ 开花规则:</strong><br>• 花卉：单子叶+卵形/心形 → 成功<br>• 水果：双子叶+卵形/披针 → 成功<br>• 蔬菜：双子叶+心形/掌状 → 成功<br><br>';
+        html+='<strong>🏆 计分:</strong> 开花成功的区域，按人物任务计算<br></p>';
         html+='<button class="btn btn-primary" onclick="closeModal()">开始!</button>';modal(html);
     }
     </script></body></html>
