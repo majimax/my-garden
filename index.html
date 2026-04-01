@@ -191,7 +191,7 @@
             <div class="side-panel">
                 <div class="panel-box"><h3>🌾 种子库</h3><div class="deck"><span class="deck-icon">🌰</span><span class="deck-count" id="seed-count">24</span></div></div>
                 <div class="panel-box"><h3>📦 主牌库</h3><div class="deck"><span class="deck-icon">📤</span><span class="deck-count" id="main-count">90</span></div></div>
-                <div class="panel-box"><h3>🗑️ 弃牌</h3><div class="discard-area" id="discard-area"><span class="discard-empty">暂无</span></div></div>
+                <div class="panel-box"><h3>🗑️ 弃牌</h3><div class="discard-area" id="discard-area" onclick="showDiscardAll()" style="cursor:pointer"><span class="discard-empty">暂无</span></div></div>
             </div>
         </div>
         <div class="hand-area">
@@ -609,6 +609,24 @@
         }).join('');
         
         updateButtons();
+    }
+    
+    function showDiscardAll(){
+        if(S.DC.length===0){
+            toast('弃牌区暂无卡牌');
+            return;
+        }
+        let html='<h2>🗑️ 弃牌区</h2><p>共 '+S.DC.length+' 张</p><div class="modal-cards">';
+        S.DC.forEach((c,i)=>{
+            const cardType=c.type||(['单子叶','双子叶'].includes(c.value)?'seedling':'leaf');
+            html+=`<div class="modal-card modal-card-${cardType}">
+                <span style="font-size:1.5em">${EMOJI[c.value]||'📦'}</span>
+                <span>${c.value}</span>
+                <span style="font-size:0.75em;color:#666">${cardType==='seedling'?'🌱幼苗':cardType==='leaf'?'🍃叶子':'🔧道具'}</span>
+            </div>`;
+        });
+        html+='</div><button class="btn btn-secondary" onclick="closeModal()">关闭</button>';
+        modal(html);
     }
 
     function updateHint(){
