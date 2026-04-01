@@ -696,9 +696,57 @@
     function cutCard(zi,type){
         const zone=S.Z[zi];
         if(!zone)return;
-        if((type==='seedling'||type==='sd')&&zone.seedling){S.DC.push({...zone.seedling,type:'seedling'});zone.seedling=null;log('剪掉幼苗',S.cur);}
-        else if((type==='leaf'||type==='lf')&&zone.leaf){S.DC.push({...zone.leaf,type:'leaf'});zone.leaf=null;log('剪掉叶子',S.cur);}
-        closeModal();finishTurn();
+        const cardType=type==='seedling'||type==='sd'?'seedling':'leaf';
+        const cutCard=cardType==='seedling'?zone.seedling:zone.leaf;
+        if(!cutCard)return;
+        
+        // 先把被剪的卡放入弃牌区
+        S.DC.push({...cutCard,type:cardType});
+        
+        // 从场上移除
+        if(cardType==='seedling'){zone.seedling=null;log('剪掉幼苗',S.cur);}
+        else{zone.leaf=null;log('剪掉叶子',S.cur);}
+        
+        // 检查手牌是否有同类型卡可以替换
+        const replaceable=S.P[S.cur].hand.filter(c=>c.type===cardType);
+        if(replaceable.length>0){
+            // 弹出替换选择框
+            closeModal();
+            let html='<h2>✂️ 替换</h2><p>选择一张'+cutCard.value+'替换（可选）</p><div class="modal-cards">';
+            html+='<div class="modal-card" onclick="skipReplace('+zi+',\''+cardType+'\')" style="background:#eee;cursor:pointer"><span style="font-size:1.2em">跳过</span><span>不替换</span></div>';
+            replaceable.forEach((c,i)=>{
+                html+=`<div class="modal-card modal-card-${cardType}" onclick="replaceCard(${zi},'${cardType}',${i})"><span style="font-size:1.5em">${EMOJI[c.value]}</span><span>${c.value}</span></div>`;
+            });
+            html+='</div>';
+            modal(html);
+            window._replaceData={zone:zi,type:cardType,cards:replaceable,originalCard:cutCard};
+        }else{
+            // 没有可替换的卡，直接结束
+            finishTurn();
+        }
+    }
+    
+    function skipReplace(zi,type){
+        closeModal();
+        finishTurn();
+    }
+    
+    function replaceCard(zi,type,cardIdx){
+        const d=window._replaceData;
+        const card=d.cards[cardIdx];
+        const zone=S.Z[zi];
+        if(!zone)return;
+        
+        // 从手牌移除
+        const handIdx=S.P[S.cur].hand.indexOf(card);
+        if(handIdx>=0)S.P[S.cur].hand.splice(handIdx,1);
+        
+        // 放到场上
+        if(type==='seedling'){zone.seedling={value:card.value};log('替换幼苗为'+card.value,S.cur);}
+        else{zone.leaf={value:card.value};log('替换叶子为'+card.value,S.cur);}
+        
+        closeModal();
+        finishTurn();
     }
 
     function useShovel(){
@@ -990,7 +1038,7 @@
             
             const taskTypes=S.P[aiPlayer].task.types;
             
-            // ===== 策略4：使用剪刀 - 优先剪对手干扰自己的 =====
+            // ===== 策略4：使用剪刀 - 优先剪对手干扰自己的，可替换同类型 =====
             const aiScissorsIdx=S.P[aiPlayer].hand.findIndex(c=>c.type==='tool'&&c.value==='剪刀');
             if(aiScissorsIdx>=0){
                 const mySeeds=S.Z.filter(z=>z.seed&&!z.seedling&&!z.verified&&z.owner===aiPlayer);
@@ -999,10 +1047,22 @@
                 if(opponentSeedlings.length>0&&mySeeds.length>0){
                     const z=opponentSeedlings[Math.floor(Math.random()*opponentSeedlings.length)];
                     const zi=S.Z.indexOf(z);
-                    S.DC.push({...z.seedling,type:'seedling'});
+                    const cutCard={...z.seedling,type:'seedling'};
+                    S.DC.push(cutCard);
                     z.seedling=null;
-                    S.P[aiPlayer].hand.splice(aiScissorsIdx,1);
-                    log(PLAYER_NAMES[aiPlayer-1]+'用剪刀剪掉对手区域'+(zi+1)+'的幼苗',aiPlayer);
+                    // 检查是否可以替换
+                    const replaceable=S.P[aiPlayer].hand.filter(c=>c.type==='seedling');
+                    if(replaceable.length>0){
+                        const rep=replaceable[Math.floor(Math.random()*replaceable.length)];
+                        const handIdx=S.P[aiPlayer].hand.indexOf(rep);
+                        S.P[aiPlayer].hand.splice(handIdx,1);
+                        z.seedling={value:rep.value};
+                        S.P[aiPlayer].hand.splice(aiScissorsIdx,1);
+                        log(PLAYER_NAMES[aiPlayer-1]+'剪刀替换区域'+(zi+1)+'为'+rep.value,aiPlayer);
+                    }else{
+                        S.P[aiPlayer].hand.splice(aiScissorsIdx,1);
+                        log(PLAYER_NAMES[aiPlayer-1]+'剪掉对手区域'+(zi+1)+'的幼苗',aiPlayer);
+                    }
                     finishTurn();
                     return;
                 }
@@ -1010,10 +1070,22 @@
                 if(opponentSeedlings.length>0){
                     const z=opponentSeedlings[Math.floor(Math.random()*opponentSeedlings.length)];
                     const zi=S.Z.indexOf(z);
-                    S.DC.push({...z.seedling,type:'seedling'});
+                    const cutCard={...z.seedling,type:'seedling'};
+                    S.DC.push(cutCard);
                     z.seedling=null;
-                    S.P[aiPlayer].hand.splice(aiScissorsIdx,1);
-                    log(PLAYER_NAMES[aiPlayer-1]+'剪掉对手区域'+(zi+1)+'的幼苗',aiPlayer);
+                    // 检查是否可以替换
+                    const replaceable=S.P[aiPlayer].hand.filter(c=>c.type==='seedling');
+                    if(replaceable.length>0){
+                        const rep=replaceable[Math.floor(Math.random()*replaceable.length)];
+                        const handIdx=S.P[aiPlayer].hand.indexOf(rep);
+                        S.P[aiPlayer].hand.splice(handIdx,1);
+                        z.seedling={value:rep.value};
+                        S.P[aiPlayer].hand.splice(aiScissorsIdx,1);
+                        log(PLAYER_NAMES[aiPlayer-1]+'剪刀替换区域'+(zi+1)+'为'+rep.value,aiPlayer);
+                    }else{
+                        S.P[aiPlayer].hand.splice(aiScissorsIdx,1);
+                        log(PLAYER_NAMES[aiPlayer-1]+'剪掉对手区域'+(zi+1)+'的幼苗',aiPlayer);
+                    }
                     finishTurn();
                     return;
                 }
