@@ -697,7 +697,7 @@
         }
     }
 
-    function doDraw(){if(window._drew||currentAction)return;if(S.MD.length>0){S.P[S.cur].hand.push(S.MD.pop());window._drew=true;log('抽牌',S.cur);}else toast('牌库空!');render();updateHint();}
+    function doDraw(){if(window._drew||currentAction)return;if(S.MD.length>0){if(S.P[S.cur].hand.length>=5){toast('手牌已满(5张)');return;}S.P[S.cur].hand.push(S.MD.pop());window._drew=true;log('抽牌',S.cur);}else toast('牌库空!');render();updateHint();}
     function doPlant(){if(window._mainActionDone){toast('本回合已执行操作');return;}if(currentAction==='plant'){currentAction='';window._selectedCard=-1;render();updateHint();return;}currentAction='plant';window._selectedCard=-1;window._targetZone=-1;render();updateHint();toast('选择幼苗卡');}
     function doLeaf(){if(window._mainActionDone){toast('本回合已执行操作');return;}if(currentAction==='leaf'){currentAction='';window._selectedCard=-1;render();updateHint();return;}currentAction='leaf';window._selectedCard=-1;window._targetZone=-1;render();updateHint();toast('选择叶子卡');}
     function doTool(){
@@ -764,13 +764,13 @@
 
     function useShovel(){
         if(window._usedTool){toast('本回合已使用道具');return;}
-        const 可查=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified&&z.owner===S.cur);
-        if(可查.length===0){toast('无自己种子可查看');return;}
+        const 可查=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified);
+        if(可查.length===0){toast('无未验证种子可查看');return;}
         // 保存铲子的位置索引
         const h=S.P[S.cur].hand;
         window._shovelIdx=h.findIndex(c=>c.type==='tool'&&c.value==='铲子');
-        let html='<h2>🔧 铲子</h2><p>选择自己的种子区域查看/交换</p><div class="modal-cards">';
-        可查.forEach(z=>{const zi=S.Z.indexOf(z);html+=`<div class="modal-card modal-card-seed" onclick="viewSeedCard(${zi})"><span>🌰</span><span>区${zi+1}</span></div>`;});
+        let html='<h2>🔧 铲子</h2><p>选择任意种子区域查看/交换</p><div class="modal-cards">';
+        可查.forEach(z=>{const zi=S.Z.indexOf(z);const owner=z.owner===S.cur?'(自己)':'(对手)';html+=`<div class="modal-card modal-card-seed" onclick="viewSeedCard(${zi})"><span>🌰</span><span>区${zi+1}${owner}</span></div>`;});
         html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';
         modal(html);
     }
@@ -1100,8 +1100,8 @@
         const aiPlayer = S.cur; // 当前AI玩家
         log(PLAYER_NAMES[aiPlayer-1]+'(AI)行动中',aiPlayer);
         
-        // AI回合：抽牌
-        if(S.MD.length>0){
+        // AI回合：抽牌（手牌上限5张）
+        if(S.MD.length>0 && S.P[aiPlayer].hand.length < 5){
             S.P[aiPlayer].hand.push(S.MD.pop());
             log('AI抽牌',aiPlayer);
         }
@@ -1113,6 +1113,50 @@
             if(S.over||!isAITurn)return;
             
             const taskTypes=S.P[aiPlayer].task.types;
+            
+            // ===== 策略0：使用铲子 - 优先于种植，智能决策 =====
+            const aiShovelIdx=S.P[aiPlayer].hand.findIndex(c=>c.type==='tool'&&c.value==='铲子');
+            if(aiShovelIdx>=0 && !window._usedTool && S.seedPool.length>0){
+                const allUnrevealedSeeds=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified);
+                if(allUnrevealedSeeds.length>0){
+                    // 评估每个可交换的种子
+                    let bestSwap=null; // {zone,oldSeed,newSeed,score}
+                    for(const z of allUnrevealedSeeds){
+                        const zi=S.Z.indexOf(z);
+                        const oldSeed=z.seed;
+                        const newSeed=S.seedPool[0]; // 看牌堆顶
+                        const isOwn=z.owner===aiPlayer;
+                        // 计算当前种子对AI的任务价值
+                        const oldMatch=taskTypes.includes(oldSeed.type)?1:0;
+                        // 计算新种子对AI的任务价值
+                        const newMatch=taskTypes.includes(newSeed.type)?1:0;
+                        // 如果是自己的种子且当前不匹配但新种子匹配 → 强烈建议交换
+                        // 如果是对手的种子且匹配对手任务 → 建议交换(干扰对手)
+                        // 如果是对手的种子且不匹配 → 随机决定是否交换(获取情报)
+                        let score=0;
+                        if(isOwn){
+                            score=newMatch-oldMatch; // 正数表示变好
+                        } else {
+                            // 对手种子：干扰价值 + 新种子价值
+                            score=newMatch+0.5; // 对手不匹配时也有价值
+                        }
+                        if(score>0||(!isOwn&&Math.random()<0.3)){
+                            // 执行交换
+                            const poppedSeed=S.seedPool.pop();
+                            const revertSeed=z.seed;
+                            z.seed={name:poppedSeed.name,...poppedSeed,revealed:true};
+                            S.seedPool.push({name:revertSeed.name,...revertSeed});
+                            S.P[aiPlayer].hand.splice(aiShovelIdx,1);
+                            S.DC.push({type:'tool',value:'铲子'});
+                            window._usedTool=true;
+                            log(PLAYER_NAMES[aiPlayer-1]+'用铲子查看/交换区'+(zi+1)+(isOwn?'(自己)':'(对手)')+'种子',aiPlayer);
+                            render();
+                            // 铲子使用后，继续其他行动（不立即结束回合）
+                            break;
+                        }
+                    }
+                }
+            }
             
             // ===== 策略4：使用剪刀 - 优先剪对手干扰自己的 =====
             const aiScissorsIdx=S.P[aiPlayer].hand.findIndex(c=>c.type==='tool'&&c.value==='剪刀');
@@ -1212,26 +1256,6 @@
                     S.P[aiPlayer].hand.splice(cIdx,1);
                     S.Z[zi].leaf={value:c.value};
                     log(PLAYER_NAMES[aiPlayer-1]+'放'+c.value+'叶子到区'+(zi+1)+'(随机)',aiPlayer);
-                    finishTurn();
-                    return;
-                }
-            }
-            
-            // ===== 策略7：使用铲子 - 种植完后尝试交换优化 =====
-            const shovelIdx=S.P[aiPlayer].hand.findIndex(c=>c.type==='tool'&&c.value==='铲子');
-            if(shovelIdx>=0 && !window._usedTool){
-                const mySeeds=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified&&z.owner===aiPlayer);
-                const needMoreSeedling=S.Z.filter(z=>z.seed&&!z.seedling&&!z.verified&&z.owner===aiPlayer);
-                if(mySeeds.length>0&&S.seedPool.length>0&&needMoreSeedling.length>0){
-                    const z=mySeeds[Math.floor(Math.random()*mySeeds.length)];
-                    const zi=S.Z.indexOf(z);
-                    const oldSeed=z.seed;
-                    const newSeed=S.seedPool.pop();
-                    z.seed={name:newSeed.name,...newSeed,revealed:false};
-                    S.seedPool.push({name:oldSeed.name,...oldSeed});
-                    S.P[aiPlayer].hand.splice(shovelIdx,1);
-                    window._usedTool=true;
-                    log(PLAYER_NAMES[aiPlayer-1]+'用铲子交换区域'+(zi+1)+'种子',aiPlayer);
                     finishTurn();
                     return;
                 }
