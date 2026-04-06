@@ -219,29 +219,39 @@
     const PLAYER_ICONS = ['🌿','🌵','🌸','🍎','🥬','🌻'];
     const PLAYER_NAMES = ['玩家1','玩家2','玩家3','玩家4','玩家5','玩家6'];
     
-    // 完整植物数据
+    // 完整植物数据（根据新版种子卡分布 v1 更新）
+    // 单子叶: 卵形(玉簪、铃兰、香蕉) / 披针(郁金香、菠萝、大葱) / 心形(水晶花烛、山药、芋头) / 掌状(蒲葵、旅人蕉、慈菇)
+    // 双子叶: 卵形(茉莉花、苹果、菠菜) / 披针(芒果、石榴、辣椒) / 心形(牵牛花、葡萄、猕猴桃) / 掌状(西瓜、南瓜、丝瓜)
     const PLANTS = {
-        '百合':{type:'花卉',seedling:'单子叶',leaf:'卵形'},
+        // 单子叶 - 卵形叶
         '玉簪':{type:'花卉',seedling:'单子叶',leaf:'卵形'},
-        '鸢尾':{type:'花卉',seedling:'单子叶',leaf:'披针'},
-        '水晶花烛':{type:'花卉',seedling:'单子叶',leaf:'心形'},
-        '蒲葵':{type:'花卉',seedling:'单子叶',leaf:'掌状'},
-        '旅人蕉':{type:'花卉',seedling:'单子叶',leaf:'掌状'},
-        '月季':{type:'花卉',seedling:'双子叶',leaf:'卵形'},
-        '牵牛花':{type:'花卉',seedling:'双子叶',leaf:'心形'},
+        '铃兰':{type:'花卉',seedling:'单子叶',leaf:'卵形'},
         '香蕉':{type:'水果',seedling:'单子叶',leaf:'卵形'},
+        // 单子叶 - 披针叶
+        '郁金香':{type:'花卉',seedling:'单子叶',leaf:'披针'},
         '菠萝':{type:'水果',seedling:'单子叶',leaf:'披针'},
-        '苹果':{type:'水果',seedling:'双子叶',leaf:'卵形'},
-        '芒果':{type:'水果',seedling:'双子叶',leaf:'披针'},
-        '石榴':{type:'水果',seedling:'双子叶',leaf:'披针'},
-        '草莓':{type:'水果',seedling:'双子叶',leaf:'心形'},
-        '百香果':{type:'水果',seedling:'双子叶',leaf:'心形'},
-        '葱':{type:'蔬菜',seedling:'单子叶',leaf:'披针'},
+        '大葱':{type:'蔬菜',seedling:'单子叶',leaf:'披针'},
+        // 单子叶 - 心形叶
+        '水晶花烛':{type:'花卉',seedling:'单子叶',leaf:'心形'},
         '山药':{type:'蔬菜',seedling:'单子叶',leaf:'心形'},
         '芋头':{type:'蔬菜',seedling:'单子叶',leaf:'心形'},
-        '魔芋':{type:'蔬菜',seedling:'单子叶',leaf:'掌状'},
+        // 单子叶 - 掌状叶
+        '蒲葵':{type:'花卉',seedling:'单子叶',leaf:'掌状'},
+        '旅人蕉':{type:'花卉',seedling:'单子叶',leaf:'掌状'},
+        '慈菇':{type:'蔬菜',seedling:'单子叶',leaf:'掌状'},
+        // 双子叶 - 卵形叶
+        '茉莉花':{type:'花卉',seedling:'双子叶',leaf:'卵形'},
+        '苹果':{type:'水果',seedling:'双子叶',leaf:'卵形'},
         '菠菜':{type:'蔬菜',seedling:'双子叶',leaf:'卵形'},
+        // 双子叶 - 披针叶
+        '芒果':{type:'水果',seedling:'双子叶',leaf:'披针'},
+        '石榴':{type:'水果',seedling:'双子叶',leaf:'披针'},
         '辣椒':{type:'蔬菜',seedling:'双子叶',leaf:'披针'},
+        // 双子叶 - 心形叶
+        '牵牛花':{type:'花卉',seedling:'双子叶',leaf:'心形'},
+        '葡萄':{type:'水果',seedling:'双子叶',leaf:'心形'},
+        '猕猴桃':{type:'水果',seedling:'双子叶',leaf:'心形'},
+        // 双子叶 - 掌状叶
         '西瓜':{type:'水果',seedling:'双子叶',leaf:'掌状'},
         '南瓜':{type:'蔬菜',seedling:'双子叶',leaf:'掌状'},
         '丝瓜':{type:'蔬菜',seedling:'双子叶',leaf:'掌状'},
@@ -256,7 +266,7 @@
         return seed.seedling === seedling && seed.leaf === leaf;
     }
     
-    const SEED_DIST = {'花卉':8,'水果':7,'蔬菜':9};
+    const SEED_DIST = {'花卉':8,'水果':8,'蔬菜':8};
     // 人物卡（同时也是任务卡），每人抽一张不重复
     const PERSONAS = [
         {name:'👨 爸爸',desc:'水果+蔬菜 每张2分',types:['水果','蔬菜'],score:2,icon:'👨'},
