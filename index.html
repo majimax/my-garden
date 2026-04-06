@@ -681,7 +681,7 @@
         const canVerify=S.Z.some(z=>z.seed&&z.seedling&&z.leaf&&!z.verified);
         
         // 简化按钮状态
-        document.getElementById('btn-draw').disabled=drew||isAITurn;
+        document.getElementById('btn-draw').disabled=drew||isAITurn||h.length>=5;
         document.getElementById('btn-plant').disabled=!hasSD||!hasEmpty||isAITurn;
         document.getElementById('btn-leaf').disabled=!hasLF||!hasLeafZone||isAITurn;
         document.getElementById('btn-tool').disabled=!hasTL||isAITurn;
@@ -1026,7 +1026,6 @@
             });
             html+='</div><p id="dhint" style="color:#4CAF50">已选 0/'+excess+'</p>';
             html+='<button class="btn btn-primary" id="dbtn" onclick="confirmDiscard()" disabled>确认弃牌</button>';
-            html+='<button class="btn btn-secondary" onclick="skipDiscard()">取消</button>';
             window._discardData={excess,selected:[],player:prevPlayer};
             modal(html);
             return;
@@ -1059,7 +1058,12 @@
         d.selected.sort((a,b)=>b-a).forEach(i=>S.P[d.player].hand.splice(i,1));
         log(PLAYER_NAMES[d.player-1]+'弃掉'+d.selected.length+'张',d.player);
         closeModal();
-        advanceToNextPlayer();
+        if(d.isGameEnd){
+            // 游戏结束弃牌后，重新检查是否还有其他玩家需要弃牌
+            checkEnd();
+        }else{
+            advanceToNextPlayer();
+        }
     }
     
     function skipDiscard(){
@@ -1357,6 +1361,42 @@
     function checkEnd(){
         const all=S.Z.filter(z=>z.seed).every(z=>z.verified);
         if(all){
+            // 游戏结束！先处理弃牌
+            const playersNeedingDiscard=S.P.slice(1).filter(p=>p.hand.length>5&&!p.isAI);
+            if(playersNeedingDiscard.length>0){
+                // 有人需要弃牌，先弹出弃牌框
+                const p=playersNeedingDiscard[0];
+                const excess=p.hand.length-5;
+                let html='<h2>🗑️ 游戏结束！请弃牌</h2><p>请选择 '+excess+' 张牌丢掉（手牌需≤5张）：</p><div class="modal-cards">';
+                p.hand.forEach((c,i)=>{
+                    const emoji=EMOJI[c.value]||c.type==='seedling'?'🌱':c.type==='leaf'?'🍃':'🔧';
+                    html+=`<div class="modal-card modal-card-${c.type}" id="dc${i}" onclick="toggleDiscard(${i})">
+                        <span class="modal-card-emoji">${emoji}</span>
+                        <span>${c.value}</span>
+                    </div>`;
+                });
+                html+='</div><p id="dhint" style="color:#4CAF50">已选 0/'+excess+'</p>';
+                html+='<button class="btn btn-primary" id="dbtn" onclick="confirmDiscard()" disabled>确认弃牌</button>';
+                window._discardData={excess,selected:[],player:p.player,isGameEnd:true};
+                modal(html);
+                return;
+            }
+            // AI自动弃牌
+            for(let pIdx=1;pIdx<=S.totalPlayers;pIdx++){
+                const p=S.P[pIdx];
+                if(p.isAI&&p.hand.length>5){
+                    const excess=p.hand.length-5;
+                    let discarded=0;
+                    for(let i=0;i<p.hand.length&&discarded<excess;i++){
+                        if(p.hand[i].type!=='tool'){
+                            S.DC.push(p.hand[i]);
+                            p.hand.splice(i,1);
+                            i--;
+                            discarded++;
+                        }
+                    }
+                }
+            }
             // 统计所有成功开花的区域（不看谁开花的）
             const cnt={'花卉':0,'水果':0,'蔬菜':0};
             S.Z.filter(z=>z.verified==='ok').forEach(z=>cnt[z.seed.type]++);
