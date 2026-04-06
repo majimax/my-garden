@@ -774,7 +774,7 @@
 
     function useShovel(){
         if(window._usedTool){toast('本回合已使用道具');return;}
-        const 可查=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.seed.revealed&&!z.verified);
+        const 可查=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified);
         if(可查.length===0){toast('无未验证种子可查看');return;}
         // 保存铲子的位置索引
         const h=S.P[S.cur].hand;
@@ -976,7 +976,7 @@
             可剪.forEach(z=>{const zi=S.Z.indexOf(z);if(z.seedling)html+=`<div class="modal-card modal-card-seedling" onclick="cutCard(${zi},'sd')"><span>${EMOJI[z.seedling.value]}</span><span>${z.seedling.value}</span><span>区${zi+1}</span></div>`;if(z.leaf)html+=`<div class="modal-card modal-card-leaf" onclick="cutCard(${zi},'lf')"><span>${EMOJI[z.leaf.value]}</span><span>${z.leaf.value}</span><span>区${zi+1}</span></div>`;});
             html+='</div><button class="btn btn-secondary" onclick="closeModal();S.P[S.cur].hand.push({type:\'tool\',value:\'剪刀\'})">取消</button>';modal(html);
         }else if(type==='铲子'){
-            const 可查=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.seed.revealed&&!z.verified);
+            const 可查=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified);
             if(可查.length===0){toast('无种子可查看');S.P[S.cur].hand.push({type:'tool',value:type});return;}
             let html='<h2>🔧 铲子</h2><p>选择区域查看/交换</p><div class="modal-cards">';
             可查.forEach(z=>{const zi=S.Z.indexOf(z);html+=`<div class="modal-card modal-card-seed" onclick="viewSeed(${zi})"><span>🌰</span><span>区${zi+1}</span></div>`;});
@@ -1127,7 +1127,7 @@
             // ===== 策略0：使用铲子 - 优先于种植，智能决策 =====
             const aiShovelIdx=S.P[aiPlayer].hand.findIndex(c=>c.type==='tool'&&c.value==='铲子');
             if(aiShovelIdx>=0 && !window._usedTool && S.seedPool.length>0){
-                const allUnrevealedSeeds=S.Z.filter(z=>z.seed&&z.seedling&&z.leaf&&!z.seed.revealed&&!z.verified);
+                const allUnrevealedSeeds=S.Z.filter(z=>z.seed&&!z.seed.revealed&&!z.verified);
                 if(allUnrevealedSeeds.length>0){
                     // 评估每个可交换的种子
                     let bestSwap=null; // {zone,oldSeed,newSeed,score}
@@ -1154,7 +1154,7 @@
                             // 执行交换
                             const poppedSeed=S.seedPool.pop();
                             const revertSeed=z.seed;
-                            z.seed={name:poppedSeed.name,...poppedSeed,revealed:true};
+                            z.seed={name:poppedSeed.name,...poppedSeed,revealed:false};
                             S.seedPool.push({name:revertSeed.name,...revertSeed});
                             S.P[aiPlayer].hand.splice(aiShovelIdx,1);
                             S.DC.push({type:'tool',value:'铲子'});
