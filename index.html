@@ -732,7 +732,7 @@
         }
     }
 
-    function doDraw(){if(window._drew||currentAction)return;if(S.P[S.cur].hand.length>=5){toast('手牌已满（5张）');return;}if(S.MD.length>0){S.P[S.cur].hand.push(S.MD.pop());window._drew=true;log('抽牌',S.cur);}else toast('牌库空!');render();updateHint();}
+    function doDraw(){if(window._drew||currentAction)return;if(S.MD.length>0){S.P[S.cur].hand.push(S.MD.pop());window._drew=true;log('抽牌',S.cur);}else toast('牌库空!');render();updateHint();}
     function doPlant(){if(window._mainActionDone){toast('本回合已执行操作');return;}if(currentAction==='plant'){currentAction='';window._selectedCard=-1;render();updateHint();return;}currentAction='plant';window._selectedCard=-1;window._targetZone=-1;render();updateHint();toast('选择幼苗卡');}
     function doLeaf(){if(window._mainActionDone){toast('本回合已执行操作');return;}if(currentAction==='leaf'){currentAction='';window._selectedCard=-1;render();updateHint();return;}currentAction='leaf';window._selectedCard=-1;window._targetZone=-1;render();updateHint();toast('选择叶子卡');}
     function doTool(){
