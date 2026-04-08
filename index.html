@@ -1387,7 +1387,7 @@
         if(!allVerified) return;
         
         // 游戏结束！先处理弃牌
-        const playersNeedingDiscard=S.P.slice(1).filter(p=>p.hand.length>5&&!p.isAI);
+        const playersNeedingDiscard=Object.values(S.P).filter(p=>p.hand.length>5&&!p.isAI);
         if(playersNeedingDiscard.length>0){
             // 有人需要弃牌，先弹出弃牌框
             const p=playersNeedingDiscard[0];
