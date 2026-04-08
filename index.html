@@ -706,7 +706,7 @@
         const canVerify=S.Z.some(z=>z.seed&&z.seedling&&z.leaf&&!z.verified);
         
         // 简化按钮状态
-        document.getElementById('btn-draw').disabled=drew||isAITurn||h.length>=5;
+        document.getElementById('btn-draw').disabled=drew||isAITurn;
         document.getElementById('btn-plant').disabled=!hasSD||!hasEmpty||isAITurn;
         document.getElementById('btn-leaf').disabled=!hasLF||!hasLeafZone||isAITurn;
         document.getElementById('btn-tool').disabled=!hasTL||isAITurn;
@@ -732,7 +732,7 @@
         }
     }
 
-    function doDraw(){if(window._drew||currentAction)return;if(S.MD.length>0){S.P[S.cur].hand.push(S.MD.pop());window._drew=true;log('抽牌',S.cur);}else toast('牌库空!');render();updateHint();}
+    function doDraw(){if(window._drew||currentAction)return;if(S.P[S.cur].hand.length>=5){toast('手牌已满（5张）');return;}if(S.MD.length>0){S.P[S.cur].hand.push(S.MD.pop());window._drew=true;log('抽牌',S.cur);}else toast('牌库空!');render();updateHint();}
     function doPlant(){if(window._mainActionDone){toast('本回合已执行操作');return;}if(currentAction==='plant'){currentAction='';window._selectedCard=-1;render();updateHint();return;}currentAction='plant';window._selectedCard=-1;window._targetZone=-1;render();updateHint();toast('选择幼苗卡');}
     function doLeaf(){if(window._mainActionDone){toast('本回合已执行操作');return;}if(currentAction==='leaf'){currentAction='';window._selectedCard=-1;render();updateHint();return;}currentAction='leaf';window._selectedCard=-1;window._targetZone=-1;render();updateHint();toast('选择叶子卡');}
     function doTool(){
@@ -827,15 +827,9 @@
         if(hasNew && window._tempSeed && window._tempSeed.newSeed){
             S.seedPool.push(window._tempSeed.newSeed);
         }
-        // 铲子从手牌移除并放入弃牌区
-        if(window._shovelIdx>=0){
-            h.splice(window._shovelIdx,1);
-            S.DC.push({type:'tool',value:'铲子'});
-        }
+        // 铲子保留在手牌（取消不消耗道具）
         closeModal();
-        // 标记道具已使用，但可以继续操作
-        window._usedTool=true;
-        finishTurn();
+        // 不标记已使用道具，不结束回合
     }
 
     function doSwapSeed(zi,newName){
@@ -1059,6 +1053,7 @@
         }
         
         // 继续轮转
+        closeModal();
         advanceToNextPlayer();
     }
     
@@ -1086,8 +1081,9 @@
         log(PLAYER_NAMES[d.player-1]+'弃掉'+d.selected.length+'张',d.player);
         closeModal();
         if(d.isGameEnd){
-            // 游戏结束弃牌后，重新检查是否还有其他玩家需要弃牌
-            checkEnd();
+            // 游戏结束弃牌后，推进到下一个玩家
+            S.over=false;
+            advanceToNextPlayer();
         }else{
             advanceToNextPlayer();
         }
@@ -1427,6 +1423,8 @@
                 }
             }
         }
+        // 标记游戏结束并显示结果
+        S.over=true;
         // 统计所有成功开花的区域（不看谁开花的）
         const cnt={'花卉':0,'水果':0,'蔬菜':0};
         S.Z.filter(z=>z.verified==='ok').forEach(z=>cnt[z.seed.type]++);
