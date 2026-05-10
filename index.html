@@ -453,8 +453,8 @@
             // 剩下2张放回牌堆底部
             if(shuffled[2])S.seedPool.unshift(shuffled[2]);
             if(shuffled[3])S.seedPool.unshift(shuffled[3]);
-            // 发4张主牌库手牌给AI
-            for(let i=0;i<4;i++)S.P[p].hand.push(S.MD.pop());
+            // 发5张主牌库手牌给AI
+            for(let i=0;i<5;i++)S.P[p].hand.push(S.MD.pop());
             
             // 渲染一次显示当前状态
             render();
@@ -542,8 +542,8 @@
         const unused=pd.d.cards.filter((c,i)=>!pd.d.selected.includes(i));
         unused.forEach(c=>S.seedPool.unshift(c));
         
-        // 发4张主牌库手牌
-        for(let i=0;i<4;i++)S.P[pd.d.player].hand.push(S.MD.pop());
+        // 发5张主牌库手牌
+        for(let i=0;i<5;i++)S.P[pd.d.player].hand.push(S.MD.pop());
         
         closeModal();
         
