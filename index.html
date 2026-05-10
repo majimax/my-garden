@@ -864,9 +864,15 @@
         if(hasNew && window._tempSeed && window._tempSeed.newSeed){
             S.seedPool.push(window._tempSeed.newSeed);
         }
-        // 铲子保留在手牌（取消不消耗道具）
+        // 铲子使用过，即使取消也要丢到弃牌区
+        const shovelIdx=h.findIndex(c=>c.type==='tool'&&c.value==='铲子');
+        if(shovelIdx>=0){
+            h.splice(shovelIdx,1);
+            S.DC.push({type:'tool',value:'铲子'});
+        }
+        window._usedTool=true; // 标记已使用道具
         closeModal();
-        // 不标记已使用道具，不结束回合
+        // 不结束回合，可以继续其他操作
     }
 
     function doSwapSeed(zi,newName){
