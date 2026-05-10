@@ -240,7 +240,7 @@
         '蒲葵':'./assets/cards/蒲葵.png','旅人蕉':'./assets/cards/旅人蕉.png','慈菇':'./assets/cards/慈菇.png',
         '茉莉花':'./assets/cards/茉莉花.png','苹果':'./assets/cards/苹果.png','菠菜':'./assets/cards/菠菜.png',
         '芒果':'./assets/cards/芒果.png','石榴':'./assets/cards/石榴.png','辣椒':'./assets/cards/辣椒.png',
-        '牵牛花':'./assets/cards/牵牛花.png','葡萄':'./assets/cards/葡萄.png','猕猴桃':'./assets/cards/猕猴桃.png',
+        '牵牛花':'./assets/cards/牵牛花.png','草莓':'./assets/cards/草莓.png','猕猴桃':'./assets/cards/猕猴桃.png',
         '西瓜':'./assets/cards/西瓜.png','南瓜':'./assets/cards/南瓜.png','丝瓜':'./assets/cards/丝瓜.png',
         // 幼苗卡图片
         '单子叶':'./assets/cards/幼苗卡-单子叶.png','双子叶':'./assets/cards/幼苗卡-双子叶.png',
@@ -256,7 +256,7 @@
         '游戏标题':'./assets/cards/游戏标题.png',
     };
     const SEED_IMG = CARD_IMG; // 兼容旧代码
-    const seedNames=['玉簪','铃兰','香蕉','郁金香','菠萝','大葱','水晶花烛','山药','芋头','蒲葵','旅人蕉','慈菇','茉莉花','苹果','菠菜','芒果','石榴','辣椒','牵牛花','葡萄','猕猴桃','西瓜','南瓜','丝瓜'];
+    const seedNames=['玉簪','铃兰','香蕉','郁金香','菠萝','大葱','水晶花烛','山药','芋头','蒲葵','旅人蕉','慈菇','茉莉花','苹果','菠菜','芒果','石榴','辣椒','牵牛花','草莓','猕猴桃','西瓜','南瓜','丝瓜'];
     seedNames.forEach(n=>SEED_IMG[n]=`./assets/seed-cards/${n}.png`);
     
     // 玩家配置
@@ -265,7 +265,7 @@
     
     // 完整植物数据（根据新版种子卡分布 v1 更新）
     // 单子叶: 卵形(玉簪、铃兰、香蕉) / 披针(郁金香、菠萝、大葱) / 心形(水晶花烛、山药、芋头) / 掌状(蒲葵、旅人蕉、慈菇)
-    // 双子叶: 卵形(茉莉花、苹果、菠菜) / 披针(芒果、石榴、辣椒) / 心形(牵牛花、葡萄、猕猴桃) / 掌状(西瓜、南瓜、丝瓜)
+    // 双子叶: 卵形(茉莉花、苹果、菠菜) / 披针(芒果、石榴、辣椒) / 心形(牵牛花、草莓、猕猴桃) / 掌状(西瓜、南瓜、丝瓜)
     const PLANTS = {
         // 单子叶 - 卵形叶
         '玉簪':{type:'花卉',seedling:'单子叶',leaf:'卵形'},
@@ -293,7 +293,7 @@
         '辣椒':{type:'蔬菜',seedling:'双子叶',leaf:'披针'},
         // 双子叶 - 心形叶
         '牵牛花':{type:'花卉',seedling:'双子叶',leaf:'心形'},
-        '葡萄':{type:'水果',seedling:'双子叶',leaf:'心形'},
+        '草莓':{type:'水果',seedling:'双子叶',leaf:'心形'},
         '猕猴桃':{type:'水果',seedling:'双子叶',leaf:'心形'},
         // 双子叶 - 掌状叶
         '西瓜':{type:'水果',seedling:'双子叶',leaf:'掌状'},
@@ -1578,7 +1578,7 @@
         html+='<tr><td>🌱单子叶</td><td>🖐掌状</td><td>蒲葵、旅人蕉</td><td>-</td><td>慈菇</td></tr>';
         html+='<tr><td>🌿双子叶</td><td>🥚卵形</td><td>茉莉花</td><td>苹果</td><td>菠菜</td></tr>';
         html+='<tr><td>🌿双子叶</td><td>🪡披针</td><td>-</td><td>芒果、石榴</td><td>辣椒</td></tr>';
-        html+='<tr><td>🌿双子叶</td><td>❤️心形</td><td>牵牛花</td><td>葡萄、猕猴桃</td><td>-</td></tr>';
+        html+='<tr><td>🌿双子叶</td><td>❤️心形</td><td>牵牛花</td><td>草莓、猕猴桃</td><td>-</td></tr>';
         html+='<tr><td>🌿双子叶</td><td>🖐掌状</td><td>-</td><td>西瓜</td><td>南瓜、丝瓜</td></tr>';
         html+='</table></div></details>';
         html+='<details style="margin-bottom:10px"><summary style="font-weight:bold;cursor:pointer">🏆 计分</summary>';
