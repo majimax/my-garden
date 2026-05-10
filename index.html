@@ -860,9 +860,10 @@
 
     function cancelShovel(zi,hasNew){
         const h=S.P[S.cur].hand;
-        // 如果弹出了新种子，需要放回牌堆
+        // 如果弹出了新种子，需要放到种子牌库最下方（这样下次铲子看到的是不同的牌）
+        // seedPool.pop()从末尾取牌（牌库顶），所以unshift才是放到底部
         if(hasNew && window._tempSeed && window._tempSeed.newSeed){
-            S.seedPool.push(window._tempSeed.newSeed);
+            S.seedPool.unshift(window._tempSeed.newSeed); // 放回牌库底
         }
         // 铲子使用过，即使取消也要丢到弃牌区
         const shovelIdx=h.findIndex(c=>c.type==='tool'&&c.value==='铲子');
