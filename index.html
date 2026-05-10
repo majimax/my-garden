@@ -399,6 +399,14 @@
         let html=`<h2>🎯 ${PLAYER_NAMES[p-1]}的任务</h2>`;
         if(isHuman){
             const task=S.P[p].task;
+            // 从任务名称中提取人物名（如"👨 爸爸" -> "爸爸"）
+            const personaName=task.name.replace(/[^\u4e00-\u9fa5]/g,'');
+            const personaImg=CARD_IMG[personaName]||'';
+            html+=`<div style="margin:15px 0">`;
+            if(personaImg){
+                html+=`<img src="${personaImg}" style="width:150px;height:auto;border-radius:10px;box-shadow:0 4px 15px rgba(0,0,0,0.3);margin-bottom:15px" alt="${personaName}">`;
+            }
+            html+=`</div>`;
             html+=`<p style="font-size:1.2em;color:#2E7D32;font-weight:bold">${task.name}</p><p>${task.desc}</p>`;
             html+='<button class="btn btn-primary" onclick="closeModalAndSelectSeeds()">知道了，选择种子卡</button>';
         }else{
