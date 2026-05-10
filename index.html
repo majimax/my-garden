@@ -590,8 +590,8 @@
         if(S.totalPlayers <= 3){
             // 小于等于3人：横向排列所有玩家
             for(let i=1;i<=S.totalPlayers;i++){
-                // 只显示自己的任务，其他玩家任务隐藏
-                const taskShow = (i===p || !S.P[i]?.isAI && i===1) ? (S.P[i]?.task?.name?.split(' ')[1]||'-') : '???';
+                // 只显示自己的任务，其他玩家任务隐藏（即使AI也不知道他们的真实任务）
+                const taskShow = (i===p) ? (S.P[i]?.task?.name?.split(' ')[1]||'-') : '???';
                 const card=`<div class="player-card ${p===i?'active':''}" id="p${i}-card">
                     <span class="player-icon">${PLAYER_ICONS[i-1]}</span>
                     <div class="player-info">
@@ -728,7 +728,8 @@
     function updateTaskBar(){
         const p=S.cur,task=S.P[p].task;
         const tb=document.getElementById('task-bar');
-        if(task){tb.style.display='flex';document.getElementById('current-task-name').textContent=task.name;document.getElementById('current-task-desc').textContent=task.desc;}
+        // 只在人类玩家回合时显示任务栏，AI回合时隐藏
+        if(task&&!S.P[p]?.isAI){tb.style.display='flex';document.getElementById('current-task-name').textContent=task.name;document.getElementById('current-task-desc').textContent=task.desc;}
         else tb.style.display='none';
     }
 
