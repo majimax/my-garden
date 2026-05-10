@@ -103,15 +103,15 @@
         .hand-label { color: white; font-size: 0.8em; display: flex; align-items: center; gap: 8px; }
         .hand-count { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 6px; font-size: 0.75em; }
         .hand-cards { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-        .seed-card-hand { width: 80px; background: linear-gradient(135deg, #FFE4B5, #FFDAB9); border-radius: 8px; border: 2px solid #DEB887; padding: 0; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: all 0.2s; font-size: 0.6em; text-align: center; overflow: hidden; }
-        .seed-card-hand:hover { transform: translateY(-8px); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
-        .seed-card-hand.selected { transform: translateY(-15px); box-shadow: 0 12px 25px rgba(76,175,80,0.5); border-color: #4CAF50; }
+        .seed-card-hand { width: 100px; background: linear-gradient(135deg, #FFE4B5, #FFDAB9); border-radius: 8px; border: 2px solid #DEB887; padding: 0; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: all 0.2s; font-size: 0.7em; text-align: center; overflow: hidden; }
+        .seed-card-hand:hover { transform: translateY(-10px); box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+        .seed-card-hand.selected { transform: translateY(-18px); box-shadow: 0 15px 30px rgba(76,175,80,0.5); border-color: #4CAF50; }
         .seed-card-hand.disabled { opacity: 0.5; cursor: not-allowed; }
         .seed-card-hand.disabled:hover { transform: none; }
         .seed-card-hand .plant-name { font-weight: bold; font-size: 0.9em; color: #5D3A1A; margin-bottom: 2px; }
         .seed-card-hand .plant-type { color: #8B4513; font-size: 0.8em; }
         .seed-card-hand .plant-detail { color: #666; font-size: 0.75em; }
-        .card { width: 60px; height: 80px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 0.65em; text-align: center; padding: 4px; }
+        .card { width: 80px; height: 105px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 0.75em; text-align: center; padding: 6px; }
         .card:hover { transform: translateY(-6px); box-shadow: 0 6px 15px rgba(0,0,0,0.4); }
         .card.selected { transform: translateY(-12px); box-shadow: 0 10px 20px rgba(76,175,80,0.5); border: 2px solid #4CAF50; }
         .card.disabled { opacity: 0.4; cursor: not-allowed; }
@@ -830,8 +830,8 @@
         // 保存铲子的位置索引
         const h=S.P[S.cur].hand;
         window._shovelIdx=h.findIndex(c=>c.type==='tool'&&c.value==='铲子');
-        let html='<h2>🔧 铲子</h2><p>选择任意种子区域查看/交换</p><div class="modal-cards">';
-        可查.forEach(z=>{const zi=S.Z.indexOf(z);const owner=z.owner===S.cur?'(自己)':'(对手)';html+=`<div class="modal-card modal-card-seed" onclick="viewSeedCard(${zi})"><img src="${CARD_IMG[z.seed.name]||''}" style="width:50px;height:50px;object-fit:contain" alt="种子"><span>区${zi+1}${owner}</span></div>`;});
+        let html='<h2>🔧 铲子</h2><p>选择一个种子区域查看/交换（只能看到选中区域的种子）</p><div class="modal-cards">';
+        可查.forEach(z=>{const zi=S.Z.indexOf(z);const owner=z.owner===S.cur?'(自己)':'(对手)';html+=`<div class="modal-card modal-card-seed" onclick="viewSeedCard(${zi})"><div style="width:50px;height:50px;background:linear-gradient(135deg,#90C695,#7AB885);border-radius:6px;border:2px solid #6B8E6B;display:flex;align-items:center;justify-content:center;font-size:1.5em;color:rgba(255,255,255,0.7)">?</div><span>区${zi+1}${owner}</span></div>`;});
         html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';
         modal(html);
     }
@@ -840,10 +840,10 @@
         const zone=S.Z[zi];
         const oldSeed=zone.seed;
         const newSeed=S.seedPool.length>0?S.seedPool.pop():null;
-        let html=`<h2>🔧 铲子</h2>`;
-        html+=`<p>区${zi+1}种子: <strong style="color:#2E7D32">${oldSeed.name}</strong></p>`;
-        html+=`<div style="margin:10px 0"><img src="${CARD_IMG[oldSeed.name]||''}" style="width:80px;height:80px;object-fit:contain;border-radius:8px;border:2px solid #DEB887" alt="${oldSeed.name}"></div>`;
-        if(newSeed){html+=`<p>可交换为: <strong>${newSeed.name}</strong></p>`;html+=`<div style="margin:10px 0"><img src="${CARD_IMG[newSeed.name]||''}" style="width:80px;height:80px;object-fit:contain;border-radius:8px;border:2px solid #4CAF50" alt="${newSeed.name}"></div>`;html+=`<button class="btn btn-primary" onclick="doSwapSeed(${zi},'${newSeed.name}')">交换</button>`;}
+        let html=`<h2>🔧 铲子 - 区${zi+1}</h2>`;
+        html+=`<p>当前种子: <strong style="color:#2E7D32">${oldSeed.name}</strong></p>`;
+        html+=`<div style="margin:10px 0"><img src="${CARD_IMG[oldSeed.name]||''}" style="width:100px;height:100px;object-fit:contain;border-radius:8px;border:2px solid #DEB887" alt="${oldSeed.name}"></div>`;
+        if(newSeed){html+=`<p>可交换为: <strong>${newSeed.name}</strong></p>`;html+=`<div style="margin:10px 0"><img src="${CARD_IMG[newSeed.name]||''}" style="width:100px;height:100px;object-fit:contain;border-radius:8px;border:2px solid #4CAF50" alt="${newSeed.name}"></div>`;html+=`<button class="btn btn-primary" onclick="doSwapSeed(${zi},'${newSeed.name}')">交换</button>`;}
         html+=`<button class="btn btn-secondary" onclick="cancelShovel(${zi},${newSeed?1:0})">取消</button>`;
         modal(html);
         window._tempSeed={zi,newSeed};
@@ -863,12 +863,19 @@
     function doSwapSeed(zi,newName){
         const h=S.P[S.cur].hand;
         const old=S.Z[zi].seed;
-        S.Z[zi].seed={name:newName,...PLANTS[newName],revealed:false};
+        const zoneOwner=S.Z[zi].owner;
+        const currentPlayer=S.cur;
+        S.Z[zi].seed={name:newName,...PLANTS[newName],revealed:false,swapped:true,lastSwapper:currentPlayer};
         if(S.seedPool.length>0)S.seedPool.push({name:old.name,...old});
         // 铲子从手牌移除并放入弃牌区
         if(window._shovelIdx>=0){
             h.splice(window._shovelIdx,1);
             S.DC.push({type:'tool',value:'铲子'});
+        }
+        // 通知种子被替换的玩家（如果不是自己替换的）
+        if(zoneOwner&&zoneOwner!==currentPlayer){
+            toast(`⚠️ 你的区${zi+1}种子被替换！`);
+            log('⚠️'+PLAYER_NAMES[zoneOwner-1]+'区'+(zi+1)+'种子被替换',zoneOwner);
         }
         log('交换为'+newName,S.cur);
         window._usedTool=true;
@@ -1207,12 +1214,17 @@
                             // 执行交换
                             const poppedSeed=S.seedPool.pop();
                             const revertSeed=z.seed;
-                            z.seed={name:poppedSeed.name,...poppedSeed,revealed:false};
+                            const zoneOwner=z.owner;
+                            z.seed={name:poppedSeed.name,...poppedSeed,revealed:false,swapped:true,lastSwapper:aiPlayer};
                             S.seedPool.push({name:revertSeed.name,...revertSeed});
                             S.P[aiPlayer].hand.splice(aiShovelIdx,1);
                             S.DC.push({type:'tool',value:'铲子'});
                             window._usedTool=true;
                             log(PLAYER_NAMES[aiPlayer-1]+'用铲子查看/交换区'+(zi+1)+(isOwn?'(自己)':'(对手)')+'种子',aiPlayer);
+                            // 通知种子被替换的玩家
+                            if(zoneOwner&&zoneOwner!==aiPlayer){
+                                log('⚠️'+PLAYER_NAMES[zoneOwner-1]+'区'+(zi+1)+'种子被替换',zoneOwner);
+                            }
                             render();
                             // 铲子使用后，继续其他行动（不立即结束回合）
                             break;
