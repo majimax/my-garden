@@ -9,7 +9,8 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; background: linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 50%, #1a3a2a 100%); min-height: 100vh; color: #333; }
         .screen { display: none; min-height: 100vh; padding: 20px; }
         .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #start-screen h1 { font-size: 3em; color: #fff; text-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-bottom: 8px; }
+        #start-screen h1 { font-size: 3em; color: #fff; text-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-bottom: 8px; display: none; }
+        #start-screen .title-img { width: 100%; max-width: 500px; margin-bottom: 20px; filter: brightness(0) invert(1); }
         #start-screen .subtitle { color: rgba(255,255,255,0.8); font-size: 1em; margin-bottom: 40px; }
         .btn { padding: 14px 35px; font-size: 1em; border: none; border-radius: 25px; cursor: pointer; transition: all 0.3s; margin: 6px; }
         .btn-primary { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; box-shadow: 0 4px 15px rgba(76,175,80,0.4); }
@@ -168,7 +169,7 @@
 </head>
 <body>
     <div id="start-screen" class="screen active">
-        <h1>🌱 我的花园</h1>
+        <img src="./assets/cards/游戏标题.png" alt="我的花园" class="title-img" style="filter:brightness(0) invert(1)">
         <p class="subtitle">一家人种菜，有人悄悄使坏，有人暗中帮忙</p>
         <button class="btn btn-primary" onclick="show('mode-screen')">开始游戏</button>
         <button class="btn btn-secondary" onclick="showRule()">游戏规则</button>
@@ -231,7 +232,30 @@
     const EMOJI = {'单子叶':'🌾','双子叶':'🌱','卵形':'🥚','披针':'🪡','心形':'❤️','掌状':'🖐️','剪刀':'✂️','铲子':'🔧','水桶':'💧'};
     
     // 种子卡图片路径映射
-    const SEED_IMG = {};
+    const CARD_IMG = {
+        // 种子卡图片
+        '玉簪':'./assets/cards/玉簪.png','铃兰':'./assets/cards/铃兰.png','香蕉':'./assets/cards/香蕉.png',
+        '郁金香':'./assets/cards/郁金香.png','菠萝':'./assets/cards/菠萝.png','大葱':'./assets/cards/大葱.png',
+        '水晶花烛':'./assets/cards/水晶花烛.png','山药':'./assets/cards/山药.png','芋头':'./assets/cards/芋头.png',
+        '蒲葵':'./assets/cards/蒲葵.png','旅人蕉':'./assets/cards/旅人蕉.png','慈菇':'./assets/cards/慈菇.png',
+        '茉莉花':'./assets/cards/茉莉花.png','苹果':'./assets/cards/苹果.png','菠菜':'./assets/cards/菠菜.png',
+        '芒果':'./assets/cards/芒果.png','石榴':'./assets/cards/石榴.png','辣椒':'./assets/cards/辣椒.png',
+        '牵牛花':'./assets/cards/牵牛花.png','葡萄':'./assets/cards/葡萄.png','猕猴桃':'./assets/cards/猕猴桃.png',
+        '西瓜':'./assets/cards/西瓜.png','南瓜':'./assets/cards/南瓜.png','丝瓜':'./assets/cards/丝瓜.png',
+        // 幼苗卡图片
+        '单子叶':'./assets/cards/幼苗卡-单子叶.png','双子叶':'./assets/cards/幼苗卡-双子叶.png',
+        // 叶子卡图片
+        '卵形':'./assets/cards/叶子卡-卵形叶.png','披针':'./assets/cards/叶子卡-披针叶.png','心形':'./assets/cards/叶子卡-心形叶.png','掌状':'./assets/cards/叶子卡-掌状叶.png',
+        // 道具卡图片
+        '剪刀':'./assets/cards/道具-剪刀.png','铲子':'./assets/cards/道具-铲子.png','水桶':'./assets/cards/道具-水桶.png',
+        // 人物卡图片
+        '爸爸':'./assets/cards/人物卡-爸爸.png','妈妈':'./assets/cards/人物卡-妈妈.png',
+        '爷爷':'./assets/cards/人物卡-爷爷.png','奶奶':'./assets/cards/人物卡-奶奶.png',
+        '哥哥':'./assets/cards/人物卡-哥哥.png','姐姐':'./assets/cards/人物卡-姐姐.png',
+        // 游戏标题
+        '游戏标题':'./assets/cards/游戏标题.png',
+    };
+    const SEED_IMG = CARD_IMG; // 兼容旧代码
     const seedNames=['玉簪','铃兰','香蕉','郁金香','菠萝','大葱','水晶花烛','山药','芋头','蒲葵','旅人蕉','慈菇','茉莉花','苹果','菠菜','芒果','石榴','辣椒','牵牛花','葡萄','猕猴桃','西瓜','南瓜','丝瓜'];
     seedNames.forEach(n=>SEED_IMG[n]=`./assets/seed-cards/${n}.png`);
     
@@ -436,7 +460,7 @@
         render(); // 先渲染显示其他玩家已放置的种子
         
         let html=`<h2>🌿 ${PLAYER_NAMES[p-1]}初始种植</h2><p>你有${cards.length}张种子卡，选2张放到2个区域</p><div class="modal-cards">`;
-        cards.forEach((c,i)=>{html+=`<div class="modal-card modal-card-seed" id="sc${i}" onclick="toggleSeedSelect(${i})"><img class="modal-seed-img" src="${SEED_IMG[c.name]||''}" alt="${c.name}"><div class="modal-seed-info"><span class="modal-seed-name">${c.name}</span><span class="modal-seed-detail">${c.seedling}·${c.leaf}</span></div></div>`;});
+        cards.forEach((c,i)=>{html+=`<div class="modal-card modal-card-seed" id="sc${i}" onclick="toggleSeedSelect(${i})"><img class="modal-seed-img" src="${CARD_IMG[c.name]||''}" alt="${c.name}"><div class="modal-seed-info"><span class="modal-seed-name">${c.name}</span><span class="modal-seed-detail">${c.seedling}·${c.leaf}</span></div></div>`;});
         html+=`</div><p id="shint" style="color:#4CAF50">已选 0/2</p><button class="btn btn-primary" id="sbtn" onclick="chooseZonesForSeeds()" disabled>选择放置区域</button><button class="btn btn-secondary" onclick="showMyTaskModal(window._taskPlayer)">上一步</button>`;
         modal(html);
     }
@@ -470,7 +494,7 @@
         const d=window._initData;
         d.selected=[];
         let html=`<h2>🌿 ${PLAYER_NAMES[d.player-1]}初始种植</h2><p>你有${d.cards.length}张种子卡，选2张放到2个区域</p><div class="modal-cards">`;
-        d.cards.forEach((c,i)=>{html+=`<div class="modal-card modal-card-seed" id="sc${i}" onclick="toggleSeedSelect(${i})"><img class="modal-seed-img" src="${SEED_IMG[c.name]||''}" alt="${c.name}"><div class="modal-seed-info"><span class="modal-seed-name">${c.name}</span><span class="modal-seed-detail">${c.seedling}·${c.leaf}</span></div></div>`;});
+        d.cards.forEach((c,i)=>{html+=`<div class="modal-card modal-card-seed" id="sc${i}" onclick="toggleSeedSelect(${i})"><img class="modal-seed-img" src="${CARD_IMG[c.name]||''}" alt="${c.name}"><div class="modal-seed-info"><span class="modal-seed-name">${c.name}</span><span class="modal-seed-detail">${c.seedling}·${c.leaf}</span></div></div>`;});
         html+=`</div><p id="shint" style="color:#4CAF50">已选 0/2</p><button class="btn btn-primary" id="sbtn" onclick="chooseZonesForSeeds()" disabled>选择放置区域</button><button class="btn btn-secondary" onclick="showMyTaskModal(window._taskPlayer)">上一步</button>`;
         modal(html);
     }
@@ -615,7 +639,9 @@
             let cls='card card-'+c.type+(sel?' selected':'')+(clickable?'':' disabled')+(clickable&&!sel?' clickable':'');
             if(c.type==='seed'){
                 const s=S.seedPool.find(s=>s.name===c.value)||{};
-                h.innerHTML+=`<div class="${cls}" onclick="${clickable?'selectHandCard('+i+')':''}"><img class="seed-card-img-hand" src="${SEED_IMG[c.value]||''}" alt="${c.value}"><div class="seed-card-hand-info"><span>${c.value}</span><span style="font-size:0.85em;color:#8B4513">${s.seedling||''}·${s.leaf||''}</span></div></div>`;
+                h.innerHTML+=`<div class="${cls}" onclick="${clickable?'selectHandCard('+i+')':''}"><img class="seed-card-img-hand" src="${CARD_IMG[c.value]||''}" alt="${c.value}"><div class="seed-card-hand-info"><span>${c.value}</span><span style="font-size:0.85em;color:#8B4513">${s.seedling||''}·${s.leaf||''}</span></div></div>`;
+            }else if(CARD_IMG[c.value]){
+                h.innerHTML+=`<div class="${cls}" onclick="${clickable?'selectHandCard('+i+')':''}"><img src="${CARD_IMG[c.value]}" style="width:100%;height:100%;object-fit:contain;border-radius:4px;" alt="${c.value}"></div>`;
             }else{
                 h.innerHTML+=`<div class="${cls}" onclick="${clickable?'selectHandCard('+i+')':''}"><span class="card-emoji">${EMOJI[c.value]||'📦'}</span><span class="card-type">${c.value}</span></div>`;
             }
@@ -639,14 +665,14 @@
                 const rev=zone.seed.revealed||zone.verified;
                 const flipping=zone.flipping?' flipping':'';
                 html+=`<div class="seed-card-display ${rev?'':'face-down'}${flipping}">`;
-                if(rev)html+=`<img class="seed-card-img" src="${SEED_IMG[zone.seed.name]||''}" alt="${zone.seed.name}"><div class="seed-card-info"><span class="seed-name">${zone.seed.name}</span><span class="seed-detail">${zone.seed.seedling}·${zone.seed.leaf}</span></div>`;
+                if(rev)html+=`<img class="seed-card-img" src="${CARD_IMG[zone.seed.name]||''}" alt="${zone.seed.name}"><div class="seed-card-info"><span class="seed-name">${zone.seed.name}</span><span class="seed-detail">${zone.seed.seedling}·${zone.seed.leaf}</span></div>`;
                 else html+='<span class="seed-card-back">?</span>';
                 html+='</div>';
             }
             if(zone.seedling||zone.leaf){
                 html+='<div class="zone-cards">';
-                if(zone.seedling)html+=`<div class="mini-card mini-seedling">${EMOJI[zone.seedling.value]}<br>${zone.seedling.value.slice(0,2)}</div>`;
-                if(zone.leaf)html+=`<div class="mini-card mini-leaf">${EMOJI[zone.leaf.value]}<br>${zone.leaf.value.slice(0,2)}</div>`;
+                if(zone.seedling)html+=`<div class="mini-card mini-seedling"><img src="${CARD_IMG[zone.seedling.value]||''}" style="width:100%;height:100%;object-fit:contain;" alt="${zone.seedling.value}"></div>`;
+                if(zone.leaf)html+=`<div class="mini-card mini-leaf"><img src="${CARD_IMG[zone.leaf.value]||''}" style="width:100%;height:100%;object-fit:contain;" alt="${zone.leaf.value}"></div>`;
                 html+='</div>';
             }
             if(zone.verified)html+=`<div class="zone-status ${zone.verified}">${zone.verified==='ok'?'✅':'❌'}</div>`;
@@ -743,9 +769,9 @@
         const bucketIdx=h.findIndex(c=>c.type==='tool'&&c.value==='水桶');
         
         let html='<h2>🔧 选择道具</h2><div class="modal-cards">';
-        if(scissorsIdx>=0)html+=`<div class="modal-card modal-card-tool" onclick="useToolByName('剪刀')"><span style="font-size:1.5em">✂️</span><span>剪刀</span></div>`;
-        if(shovelIdx>=0)html+=`<div class="modal-card modal-card-tool" onclick="useToolByName('铲子')"><span style="font-size:1.5em">🔧</span><span>铲子</span></div>`;
-        if(bucketIdx>=0)html+=`<div class="modal-card modal-card-tool" onclick="useToolByName('水桶')"><span style="font-size:1.5em">💧</span><span>水桶</span></div>`;
+        if(scissorsIdx>=0)html+=`<div class="modal-card modal-card-tool" onclick="useToolByName('剪刀')"><img src="${CARD_IMG['剪刀']}" style="width:50px;height:50px;object-fit:contain" alt="剪刀"></div>`;
+        if(shovelIdx>=0)html+=`<div class="modal-card modal-card-tool" onclick="useToolByName('铲子')"><img src="${CARD_IMG['铲子']}" style="width:50px;height:50px;object-fit:contain" alt="铲子"></div>`;
+        if(bucketIdx>=0)html+=`<div class="modal-card modal-card-tool" onclick="useToolByName('水桶')"><img src="${CARD_IMG['水桶']}" style="width:50px;height:50px;object-fit:contain" alt="水桶"></div>`;
         html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';
         modal(html);
     }
@@ -765,8 +791,8 @@
         let html='<h2>✂️ 剪刀</h2><p>点击要移除的幼苗或叶子</p><div class="modal-cards">';
         可剪.forEach(z=>{
             const zi=S.Z.indexOf(z);
-            if(z.seedling)html+=`<div class="modal-card modal-card-seedling" onclick="cutCard(${zi},'seedling')"><span style="font-size:1.5em">${EMOJI[z.seedling.value]}</span><span>${z.seedling.value}</span><span style="font-size:0.8em">区${zi+1}</span></div>`;
-            if(z.leaf)html+=`<div class="modal-card modal-card-leaf" onclick="cutCard(${zi},'leaf')"><span style="font-size:1.5em">${EMOJI[z.leaf.value]}</span><span>${z.leaf.value}</span><span style="font-size:0.8em">区${zi+1}</span></div>`;
+            if(z.seedling)html+=`<div class="modal-card modal-card-seedling" onclick="cutCard(${zi},'seedling')"><img src="${CARD_IMG[z.seedling.value]||''}" style="width:50px;height:50px;object-fit:contain" alt="${z.seedling.value}"><span>${z.seedling.value}</span><span style="font-size:0.8em">区${zi+1}</span></div>`;
+            if(z.leaf)html+=`<div class="modal-card modal-card-leaf" onclick="cutCard(${zi},'leaf')"><img src="${CARD_IMG[z.leaf.value]||''}" style="width:50px;height:50px;object-fit:contain" alt="${z.leaf.value}"><span>${z.leaf.value}</span><span style="font-size:0.8em">区${zi+1}</span></div>`;
         });
         html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';
         modal(html);
@@ -805,7 +831,7 @@
         const h=S.P[S.cur].hand;
         window._shovelIdx=h.findIndex(c=>c.type==='tool'&&c.value==='铲子');
         let html='<h2>🔧 铲子</h2><p>选择任意种子区域查看/交换</p><div class="modal-cards">';
-        可查.forEach(z=>{const zi=S.Z.indexOf(z);const owner=z.owner===S.cur?'(自己)':'(对手)';html+=`<div class="modal-card modal-card-seed" onclick="viewSeedCard(${zi})"><span>🌰</span><span>区${zi+1}${owner}</span></div>`;});
+        可查.forEach(z=>{const zi=S.Z.indexOf(z);const owner=z.owner===S.cur?'(自己)':'(对手)';html+=`<div class="modal-card modal-card-seed" onclick="viewSeedCard(${zi})"><img src="${CARD_IMG[z.seed.name]||''}" style="width:50px;height:50px;object-fit:contain" alt="种子"><span>区${zi+1}${owner}</span></div>`;});
         html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';
         modal(html);
     }
@@ -814,8 +840,10 @@
         const zone=S.Z[zi];
         const oldSeed=zone.seed;
         const newSeed=S.seedPool.length>0?S.seedPool.pop():null;
-        let html=`<h2>🔧 铲子</h2><p>区${zi+1}种子: <strong style="color:#2E7D32">${oldSeed.name}</strong></p>`;
-        if(newSeed){html+=`<p>可交换为: <strong>${newSeed.name}</strong></p>`;html+=`<button class="btn btn-primary" onclick="doSwapSeed(${zi},'${newSeed.name}')">交换</button>`;}
+        let html=`<h2>🔧 铲子</h2>`;
+        html+=`<p>区${zi+1}种子: <strong style="color:#2E7D32">${oldSeed.name}</strong></p>`;
+        html+=`<div style="margin:10px 0"><img src="${CARD_IMG[oldSeed.name]||''}" style="width:80px;height:80px;object-fit:contain;border-radius:8px;border:2px solid #DEB887" alt="${oldSeed.name}"></div>`;
+        if(newSeed){html+=`<p>可交换为: <strong>${newSeed.name}</strong></p>`;html+=`<div style="margin:10px 0"><img src="${CARD_IMG[newSeed.name]||''}" style="width:80px;height:80px;object-fit:contain;border-radius:8px;border:2px solid #4CAF50" alt="${newSeed.name}"></div>`;html+=`<button class="btn btn-primary" onclick="doSwapSeed(${zi},'${newSeed.name}')">交换</button>`;}
         html+=`<button class="btn btn-secondary" onclick="cancelShovel(${zi},${newSeed?1:0})">取消</button>`;
         modal(html);
         window._tempSeed={zi,newSeed};
@@ -865,7 +893,9 @@
         let html='<h2>💧 水桶</h2><p>选择要回收的卡</p><div class="modal-cards">';
         可回.forEach((c,i)=>{
             const cardType=c.type||(['单子叶','双子叶'].includes(c.value)?'seedling':'leaf');
-            html+=`<div class="modal-card modal-card-${cardType}" onclick="pickFromDiscard(${i})"><span style="font-size:1.5em">${EMOJI[c.value]||'📦'}</span><span>${c.value}</span></div>`;
+            const cardImg=CARD_IMG[c.value]||'';
+            const cardHtml=cardImg?`<img src="${cardImg}" style="width:50px;height:50px;object-fit:contain" alt="${c.value}">`:`<span style="font-size:1.5em">${EMOJI[c.value]||'📦'}</span>`;
+            html+=`<div class="modal-card modal-card-${cardType}" onclick="pickFromDiscard(${i})">${cardHtml}<span>${c.value}</span></div>`;
         });
         html+='</div><button class="btn btn-secondary" onclick="closeModal()">取消</button>';
         modal(html);
@@ -1040,8 +1070,10 @@
             let html='<h2>🗑️ 需要弃牌</h2><p>请选择 '+excess+' 张牌丢掉：</p><div class="modal-cards">';
             S.P[prevPlayer].hand.forEach((c,i)=>{
                 const emoji=EMOJI[c.value]||c.type==='seedling'?'🌱':c.type==='leaf'?'🍃':'🔧';
+                const cardImg=CARD_IMG[c.value]||'';
+                const cardHtml=cardImg?`<img src="${cardImg}" style="width:50px;height:50px;object-fit:contain" alt="${c.value}">`:`<span class="modal-card-emoji">${emoji}</span>`;
                 html+=`<div class="modal-card modal-card-${c.type}" id="dc${i}" onclick="toggleDiscard(${i})">
-                    <span class="modal-card-emoji">${emoji}</span>
+                    ${cardHtml}
                     <span>${c.value}</span>
                 </div>`;
             });
@@ -1468,10 +1500,10 @@
         const combos=[['单子叶','卵形'],['单子叶','披针'],['单子叶','心形'],['单子叶','掌状'],
                      ['双子叶','卵形'],['双子叶','披针'],['双子叶','心形'],['双子叶','掌状']];
         combos.forEach(([sd,lf])=>{
-            const flr=byType['花卉'].filter(p=>p.seedling===sd&&p.leaf===lf).map(p=>p.name).join('、');
-            const fru=byType['水果'].filter(p=>p.seedling===sd&&p.leaf===lf).map(p=>p.name).join('、');
-            const veg=byType['蔬菜'].filter(p=>p.seedling===sd&&p.leaf===lf).map(p=>p.name).join('、');
-            html+=`<tr style="background:#fafafa"><td style="padding:4px">${EMOJI[sd]}${sd}</td><td>${EMOJI[lf]}${lf}</td><td style="color:#e91e63">${flr||'-'}</td><td style="color:#ff9800">${fru||'-'}</td><td style="color:#4caf50">${veg||'-'}</td></tr>`;
+            const flr=byType['花卉'].filter(p=>p.seedling===sd&&p.leaf===lf).map(p=>`<img src="${CARD_IMG[p.name]}" style="width:20px;height:20px;object-fit:contain;vertical-align:middle" alt="${p.name}">`).join(' ');
+            const fru=byType['水果'].filter(p=>p.seedling===sd&&p.leaf===lf).map(p=>`<img src="${CARD_IMG[p.name]}" style="width:20px;height:20px;object-fit:contain;vertical-align:middle" alt="${p.name}">`).join(' ');
+            const veg=byType['蔬菜'].filter(p=>p.seedling===sd&&p.leaf===lf).map(p=>`<img src="${CARD_IMG[p.name]}" style="width:20px;height:20px;object-fit:contain;vertical-align:middle" alt="${p.name}">`).join(' ');
+            html+=`<tr style="background:#fafafa"><td style="padding:4px"><img src="${CARD_IMG[sd]}" style="width:25px;height:25px;object-fit:contain;vertical-align:middle">${sd}</td><td><img src="${CARD_IMG[lf]}" style="width:25px;height:25px;object-fit:contain;vertical-align:middle">${lf}</td><td style="color:#e91e63">${flr||'-'}</td><td style="color:#ff9800">${fru||'-'}</td><td style="color:#4caf50">${veg||'-'}</td></tr>`;
         });
         html+='</table></div><p style="font-size:0.7em;color:#888;margin-top:8px">💡 例如：想种郁金香，需要「单子叶」幼苗 + 「披针」叶子</p>';
         html+='<button class="btn btn-secondary" onclick="closeModal()">关闭</button>';modal(html);
