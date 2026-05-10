@@ -255,9 +255,7 @@
         // 游戏标题
         '游戏标题':'./assets/cards/游戏标题.png',
     };
-    const SEED_IMG = CARD_IMG; // 兼容旧代码
-    const seedNames=['玉簪','铃兰','香蕉','郁金香','菠萝','大葱','水晶花烛','山药','芋头','蒲葵','旅人蕉','慈菇','茉莉花','苹果','菠菜','芒果','石榴','辣椒','牵牛花','草莓','猕猴桃','西瓜','南瓜','丝瓜'];
-    seedNames.forEach(n=>SEED_IMG[n]=`./assets/seed-cards/${n}.png`);
+    const SEED_IMG = CARD_IMG; // 统一使用CARD_IMG
     
     // 玩家配置
     const PLAYER_ICONS = ['🌿','🌵','🌸','🍎','🥬','🌻'];
