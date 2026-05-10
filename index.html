@@ -1477,26 +1477,35 @@
         html+='<button class="btn btn-secondary" onclick="closeModal()">关闭</button>';modal(html);
     }
     function showRule(){
-        let html='<h2>📋 快速入门</h2><div style="text-align:left;font-size:0.8em;max-height:75vh;overflow-y:auto;line-height:1.6">';
+        let html='<h2>📋 游戏规则 v2.3</h2><div style="text-align:left;font-size:0.8em;max-height:75vh;overflow-y:auto;line-height:1.6">';
         html+='<p style="background:#e8f5e9;padding:12px;border-radius:8px;margin-bottom:12px"><strong>🎯 目标：</strong>让属于你任务的植物成功开花，最多得分者赢</p>';
-        html+='<details open style="margin-bottom:10px"><summary style="font-weight:bold;cursor:pointer">👤 你的任务（左上角查看）</summary>';
-        html+='<div style="padding:8px 0">每人任务不同，如奶奶种蔬菜得3分/张，姐姐种花卉得3分/张，爷爷种花+菜得2分/张</div></details>';
-        html+='<details open style="margin-bottom:10px"><summary style="font-weight:bold;cursor:pointer">🔄 每回合（抽1张牌后选1个操作）</summary>';
+        html+='<details open style="margin-bottom:10px"><summary style="font-weight:bold;cursor:pointer">👤 人物卡（随机分配，每人不同）</summary>';
         html+='<div style="padding:8px 0">';
-        html+='<p style="color:#d32f2f;font-size:0.9em">★ 抽牌后只能选一个主操作！</p>';
-        html+='<p><b>🌱 种幼苗</b>：在手牌选幼苗卡 → 点有种子无幼苗的区域</p>';
-        html+='<p><b>🍃 盖叶子</b>：在手牌选叶子卡 → 点已有幼苗的区域</p>';
-        html+='<p><b>✅ 开花</b>：点有种子+幼苗+叶子的区域 → 翻开种子看结果</p>';
-        html+='<p style="color:#666">匹配成功=✅成功，匹配失败=❌失败</p></div></details>';
-        html+='<details style="margin-bottom:10px"><summary style="font-weight:bold;cursor:pointer">🔧 道具（可选，用1次/回合）</summary>';
+        html+='<p>👨 爸爸=水果+蔬菜 2分/张 | 👩 妈妈=花+水果 2分/张 | 👴 爷爷=花+蔬菜 2分/张</p>';
+        html+='<p>👵 奶奶=蔬菜 3分/张 | 👦 哥哥=水果 3分/张 | 👧 姐姐=花 3分/张</p></div></details>';
+        html+='<details open style="margin-bottom:10px"><summary style="font-weight:bold;cursor:pointer">🏁 游戏准备</summary>';
         html+='<div style="padding:8px 0">';
-        html+='<p>✂️ <b>剪刀</b>：移除场上任意幼苗/叶子</p>';
-        html+='<p>🔧 <b>铲子</b>：查看种子，可选择交换另一个</p>';
-        html+='<p>💧 <b>水桶</b>：从弃牌区回收1张幼苗/叶子</p></div></details>';
+        html+='<p>1. 分两摞牌库：种子卡一摞，幼苗/叶子/道具一摞</p>';
+        html+='<p>2. 每人抽取人物卡，不展示</p>';
+        html+='<p>3. 确认自己人物卡上的任务</p>';
+        html+='<p>4. 每人抽4张种子卡，选2张正面朝下放在桌面中央</p>';
+        html+='<p>5. 每人从公共牌库抽取5张手牌</p>';
+        html+='<p>6. 最近拍摄过花的玩家先开始回合</p></div></details>';
+        html+='<details open style="margin-bottom:10px"><summary style="font-weight:bold;cursor:pointer">🔄 每回合流程</summary>';
+        html+='<div style="padding:8px 0">';
+        html+='<p><b>1️⃣ 抽牌</b>：从公共牌库抽1张</p>';
+        html+='<p><b>2️⃣ 道具</b>（可选，用1次/回合）：✂️剪刀移除幼苗/叶子 | 🔧铲子查看/换种子 | 💧水桶从弃牌区回收</p>';
+        html+='<p><b>3️⃣ 主操作</b>（3选1，只能选一个）：</p>';
+        html+='<p style="color:#d32f2f;font-size:0.9em">★ 注意：道具在主操作之前！</p>';
+        html+='<p>&nbsp;&nbsp;🌱 <b>种幼苗</b>：选幼苗卡 → 点有种子无幼苗的区域</p>';
+        html+='<p>&nbsp;&nbsp;🍃 <b>盖叶子</b>：选叶子卡 → 点已有幼苗的区域</p>';
+        html+='<p>&nbsp;&nbsp;✅ <b>开花</b>：点种子+幼苗+叶子齐全的区域</p>';
+        html+='<p><b>4️⃣ 弃牌</b>：手牌超过5张需丢掉多余卡</p>';
+        html+='<p><b>5️⃣ 结束回合</b></p></div></details>';
         html+='<details style="margin-bottom:10px"><summary style="font-weight:bold;cursor:pointer">🍀 开花规则</summary>';
-        html+='<div style="padding:8px 0">种子卡要求「幼苗类型」+「叶子形状」<br>放置的卡匹配种子要求 → ✅ 成功<br>不匹配 → ❌ 失败<br>查看右上角📖图鉴确认每种植物需要什么组合</div></details>';
+        html+='<div style="padding:8px 0">种子要求=幼苗类型（单子叶/双子叶）+叶子形状（卵形/披针/心形/掌状）<br>放置的卡匹配种子要求 → ✅ 成功<br>不匹配 → ❌ 失败</div></details>';
         html+='<details style="margin-bottom:10px"><summary style="font-weight:bold;cursor:pointer">🏆 计分</summary>';
-        html+='<div style="padding:8px 0">游戏结束时，成功开花的区域按任务计分<br>奶奶=蔬菜3分/张，姐姐=花卉3分/张</div></details>';
+        html+='<div style="padding:8px 0">游戏结束时，成功开花的区域按任务计分<br>奶奶=蔬菜3分/张，姐姐=花卉3分/张，哥哥=水果3分/张</div></details>';
         html+='</div><button class="btn btn-primary" onclick="closeModal()" style="margin-top:10px">开始游戏!</button>';modal(html);
     }
     </script></body></html>
